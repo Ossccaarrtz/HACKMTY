@@ -16,7 +16,7 @@ app = Flask(__name__)
 
 # Rutas de datos procesados
 DATA_PATH = Path(__file__).parent / "dataAnalysis" / "data" / "processed"
-MACRO_FILE = DATA_PATH / "macro_dataset.csv"
+MACRO_FILE = DATA_PATH / "macro_dataset_clean.csv"
 KPI_FILE = DATA_PATH / "kpis_macro.json"
 
 # Carga datos
