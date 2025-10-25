@@ -6,9 +6,18 @@ app = Flask(__name__)
 
 @app.route("/forecast")
 def forecast():
-    # Dummy ejemplo
-    return jsonify({"usd_mxn_forecast": 18.2, "inflacion": 4.3})
+    # Ejemplo básico temporal de predicción simulada
+    return jsonify({
+        "usd_mxn_forecast": 18.2,
+        "inflacion": 4.3,
+        "status": "ok"
+    })
 
 @app.route("/health")
 def health():
-    return "ok", 200
+    return jsonify({"message": "Backend AI activo"}), 200
+
+
+if __name__ == "__main__":
+    # Mantiene el servidor Flask corriendo dentro del contenedor
+    app.run(host="0.0.0.0", port=5000)

@@ -1,6 +1,5 @@
 Flask
 prophet
 pandas
-requests
+plotly
 gunicorn
-
