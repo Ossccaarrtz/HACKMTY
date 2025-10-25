@@ -1,181 +1,380 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CFO Virtual - Gemini + Rachel</title>
-  <style>
-    body {
-      font-family: "Segoe UI", sans-serif;
-      background: #0f172a;
-      color: #f8fafc;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      min-height: 100vh;
-      padding: 2rem;
-    }
-    h1 {
-      margin-bottom: 1rem;
-      color: #38bdf8;
-    }
-    #chatBox {
-      background: #1e293b;
-      border-radius: 1rem;
-      padding: 1.5rem;
-      max-width: 600px;
-      width: 100%;
-      box-shadow: 0 0 15px rgba(0,0,0,0.4);
-    }
-    #question {
-      width: 100%;
-      padding: 0.7rem;
-      font-size: 1rem;
-      border-radius: 0.5rem;
-      border: none;
-      margin-top: 0.5rem;
-      margin-bottom: 1rem;
-    }
-    .btn-row {
-      display: flex;
-      gap: 0.5rem;
-      margin-bottom: 1rem;
-    }
-    button {
-      flex: 1;
-      padding: 0.7rem;
-      border: none;
-      border-radius: 0.5rem;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    #askBtn {
-      background-color: #38bdf8;
-      color: #0f172a;
-    }
-    #askBtn:hover {
-      background-color: #7dd3fc;
-    }
-    #micBtn {
-      background-color: #fbbf24;
-      color: #0f172a;
-    }
-    #micBtn:hover {
-      background-color: #fde68a;
-    }
-    #response {
-      background: #0f172a;
-      border-radius: 0.5rem;
-      padding: 1rem;
-      min-height: 60px;
-      white-space: pre-line;
-      line-height: 1.5;
-    }
-    audio {
-      width: 100%;
-      margin-top: 1rem;
-      outline: none;
-      border-radius: 0.5rem;
-    }
-    footer {
-      margin-top: 2rem;
-      font-size: 0.85rem;
-      opacity: 0.6;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banorte FinCortex Voice - CFO Virtual</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/x-icon" href="Media/icon.ico">
+    <link rel="icon" type="image/png" href="Media/icon.png">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <h1>🤖 CFO Virtual</h1>
-  <div id="chatBox">
-    <label for="question"><b>Haz tu pregunta o habla con el asistente:</b></label>
-    <input id="question" placeholder="Ejemplo: ¿Cuál es el pronóstico financiero?" />
-
-    <div class="btn-row">
-      <button id="askBtn">Enviar texto</button>
-      <button id="micBtn">🎤 Hablar</button>
+    <!-- Header -->
+<header class="header">
+  <div class="header-container">
+    <!-- Logo fijo -->
+    <div class="logo-section">
+      <a href="index.html">
+        <img src="Media/Logo.png" alt="Logo Banorte" class="logo-img">
+      </a>
+      <span class="logo-divider">|</span>
+      <span class="logo-subtitle">FINCORTEX VOICE</span>
     </div>
 
-    <div id="response">Esperando tu pregunta...</div>
-    <audio id="voicePlayer" controls style="display:none"></audio>
+    <!-- Info (versión desktop) -->
+    <div class="header-info">
+      <span class="current-date" id="currentDate"></span>
+      <div class="user-profile">
+        <span class="user-name">MI EMPRESA S.A.</span>
+      </div>
+    </div>
+
+    <!-- Botón hamburguesa (visible solo en móvil) -->
+    <button class="hamburger" id="hamburgerBtn" aria-label="Abrir menú" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
   </div>
+</header>
 
-  <footer>Gemini + ElevenLabs (Rachel) • 2025</footer>
+<!-- Panel lateral (solo móvil) -->
+<aside id="mobileMenu" class="mobile-menu" aria-hidden="true">
+  <div class="mobile-menu__header">
+    <span class="mobile-menu__title">FINCORTEX VOICE</span>
+    <button class="hamburger is-active" id="closeMenuBtn" aria-label="Cerrar menú">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  <nav class="mobile-menu__content">
+    <div class="mobile-menu__item">
+      <span id="currentDateMobile"></span>
+    </div>
+    <div class="mobile-menu__item">
+      <strong>MI EMPRESA S.A.</strong>
+    </div>
+  </nav>
+</aside>
 
-  <script>
-    const responseDiv = document.getElementById("response");
-    const audioPlayer = document.getElementById("voicePlayer");
-    const micBtn = document.getElementById("micBtn");
-    const askBtn = document.getElementById("askBtn");
-    const questionInput = document.getElementById("question");
-    let recognition;
+<div id="menuOverlay" class="menu-overlay" hidden></div>
 
-    // Configurar Speech-to-Text
-    if ("webkitSpeechRecognition" in window) {
-      recognition = new webkitSpeechRecognition();
-      recognition.lang = "es-MX";
-      recognition.continuous = false;
-      recognition.interimResults = false;
 
-      recognition.onresult = (event) => {
-        const texto = event.results[0][0].transcript;
-        questionInput.value = texto;
-        sendQuestion(texto);
-      };
+    <!-- Hero Carousel Section -->
+    <section class="hero">
+        <div class="hero-carousel">
+            <div class="carousel-track" id="carouselTrack">
+                <div class="carousel-slide active">
+                    <div class="hero-content">
+                        <h1 class="hero-title">INTELIGENCIA FINANCIERA AVANZADA</h1>
+                        <p class="hero-subtitle">CFO VIRTUAL IMPULSADO POR IA PARA DECISIONES ESTRATÉGICAS EN TIEMPO REAL</p>
+                    </div>
+                </div>
+                <div class="carousel-slide">
+                    <div class="hero-content">
+                        <h1 class="hero-title">PREDICCIONES PRECISAS</h1>
+                        <p class="hero-subtitle">ANÁLISIS PREDICTIVO CON PROPHET PARA TIPO DE CAMBIO, INFLACIÓN E INGRESOS</p>
+                    </div>
+                </div>
+                <div class="carousel-slide">
+                    <div class="hero-content">
+                        <h1 class="hero-title">SIMULACIÓN DE ESCENARIOS</h1>
+                        <p class="hero-subtitle">EVALÚE EL IMPACTO DE SUS DECISIONES ANTES DE IMPLEMENTARLAS</p>
+                    </div>
+                </div>
+            </div>
+            <div class="carousel-indicators">
+                <button class="indicator active" data-slide="0"></button>
+                <button class="indicator" data-slide="1"></button>
+                <button class="indicator" data-slide="2"></button>
+            </div>
+        </div>
+    </section>
 
-      recognition.onerror = (e) => {
-        responseDiv.innerHTML = "❌ Error al reconocer voz: " + e.error;
-      };
-    } else {
-      micBtn.disabled = true;
-      micBtn.textContent = "🎤 No compatible";
-    }
+    <!-- KPIs Section -->
+    <section class="kpis-section">
+        <div class="container">
+            <h2 class="section-title">RESUMEN EJECUTIVO</h2>
+            <div class="kpis-grid">
+                <div class="kpi-card">
+                    <div class="kpi-icon"></div>
+                    <div class="kpi-content">
+                        <h3 class="kpi-label">INGRESOS</h3>
+                        <p class="kpi-value" id="ingresos">$0</p>
+                        <span class="kpi-trend positive">↑ 4.2%</span>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon"></div>
+                    <div class="kpi-content">
+                        <h3 class="kpi-label">GASTOS</h3>
+                        <p class="kpi-value" id="gastos">$0</p>
+                        <span class="kpi-trend negative">↓ 2.1%</span>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon"></div>
+                    <div class="kpi-content">
+                        <h3 class="kpi-label">FLUJO DE CAJA</h3>
+                        <p class="kpi-value" id="flujo">$0</p>
+                        <span class="kpi-trend positive">↑ 8.3%</span>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon"></div>
+                    <div class="kpi-content">
+                        <h3 class="kpi-label">MARGEN NETO</h3>
+                        <p class="kpi-value" id="margen">0%</p>
+                        <span class="kpi-trend positive">↑ 1.5%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
-    micBtn.addEventListener("click", () => {
-      responseDiv.innerHTML = "🎙 Escuchando...";
-      recognition.start();
-    });
+    <!-- Predictions & Simulator Section -->
+    <section class="predictions-section">
+        <div class="container">
+            <h2 class="section-title">ANÁLISIS PREDICTIVO</h2>
+            <div class="predictions-grid">
+                <!-- Gráfico USD/MXN -->
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h3 class="chart-title">TIPO DE CAMBIO USD/MXN</h3>
+                        <span class="chart-badge">PREDICCIÓN PROPHET</span>
+                    </div>
+                    <canvas id="usdChart"></canvas>
+                    <div class="chart-footer">
+                        <span class="data-source">DATOS EN TIEMPO REAL - BANXICO</span>
+                    </div>
+                </div>
 
-    askBtn.addEventListener("click", () => {
-      const question = questionInput.value.trim();
-      sendQuestion(question);
-    });
+                <!-- Gráfico Inflación -->
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h3 class="chart-title">INFLACIÓN ANUAL</h3>
+                        <span class="chart-badge">PREDICCIÓN PROPHET</span>
+                    </div>
+                    <canvas id="inflacionChart"></canvas>
+                    <div class="chart-footer">
+                        <span class="data-source">DATOS EN TIEMPO REAL - INEGI</span>
+                    </div>
+                </div>
 
-    async function sendQuestion(question) {
-      if (!question) {
-        responseDiv.innerHTML = "Por favor escribe o di una pregunta.";
-        return;
-      }
+                <!-- Gráfico Ingresos -->
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h3 class="chart-title">PROYECCIÓN DE INGRESOS</h3>
+                        <span class="chart-badge">ANÁLISIS HISTÓRICO</span>
+                    </div>
+                    <canvas id="ingresosChart"></canvas>
+                    <div class="chart-footer">
+                        <span class="data-source">BASADO EN DATOS HISTÓRICOS</span>
+                    </div>
+                </div>
 
-      responseDiv.innerHTML = "💬 Pensando...";
-      audioPlayer.style.display = "none";
+                <!-- Simulador What-If -->
+                <div class="simulator-container">
+                    <div class="chart-header">
+                        <h3 class="chart-title">SIMULADOR "WHAT-IF"</h3>
+                        <span class="chart-badge">ESCENARIOS</span>
+                    </div>
+                    <div class="simulator-controls">
+                        <div class="control-group">
+                            <label for="preciosSlider">
+                                <span>AJUSTE DE PRECIOS</span>
+                                <span class="control-value" id="preciosValue">0%</span>
+                            </label>
+                            <input type="range" id="preciosSlider" min="-10" max="10" value="0" step="0.5">
+                        </div>
+                        <div class="control-group">
+                            <label for="gastosSlider">
+                                <span>REDUCCIÓN DE GASTOS</span>
+                                <span class="control-value" id="gastosValue">0%</span>
+                            </label>
+                            <input type="range" id="gastosSlider" min="-10" max="10" value="0" step="0.5">
+                        </div>
+                        <div class="control-group">
+                            <label for="tipoCambioSlider">
+                                <span>VARIACIÓN TIPO DE CAMBIO</span>
+                                <span class="control-value" id="tipoCambioValue">0%</span>
+                            </label>
+                            <input type="range" id="tipoCambioSlider" min="-5" max="5" value="0" step="0.1">
+                        </div>
+                        <button class="btn btn-primary" id="simularBtn">SIMULAR IMPACTO</button>
+                    </div>
+                    <div class="simulator-results" id="simulatorResults">
+                        <p class="result-text">AJUSTE LOS PARÁMETROS Y PRESIONE "SIMULAR IMPACTO" PARA VISUALIZAR LOS RESULTADOS</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
-      try {
-        const res = await fetch("http://localhost:8000/ask", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question })
-        });
+    <!-- Alertas y Recomendaciones -->
+    <section class="alerts-section">
+        <div class="container">
+            <h2 class="section-title">ALERTAS INTELIGENTES</h2>
+            <div class="alerts-grid">
+                <div class="alert-card alert-warning">
+                    <div class="alert-icon"></div>
+                    <div class="alert-content">
+                        <h4>INFLACIÓN PROYECTADA ALTA</h4>
+                        <p>La inflación podría alcanzar 5.8% en los próximos 30 días. Se recomienda ajustar precios en +3% para mantener márgenes.</p>
+                        <div class="alert-actions">
+                            <button class="btn btn-small btn-primary">ACEPTAR</button>
+                            <button class="btn btn-small btn-secondary">REVISAR</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="alert-card alert-danger">
+                    <div class="alert-icon"></div>
+                    <div class="alert-content">
+                        <h4>FLUJO DE CAJA CRÍTICO</h4>
+                        <p>Se proyecta flujo negativo en 10 días. Considere reducir gastos operativos en 8% o acelerar cobranza.</p>
+                        <div class="alert-actions">
+                            <button class="btn btn-small btn-primary">VER DETALLES</button>
+                            <button class="btn btn-small btn-secondary">POSPONER</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="alert-card alert-info">
+                    <div class="alert-icon"></div>
+                    <div class="alert-content">
+                        <h4>OPORTUNIDAD DE AHORRO</h4>
+                        <p>El tipo de cambio podría bajar 2.3% la próxima semana. Momento óptimo para importaciones planificadas.</p>
+                        <div class="alert-actions">
+                            <button class="btn btn-small btn-primary">PLANIFICAR</button>
+                            <button class="btn btn-small btn-secondary">RECORDAR</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
-        const data = await res.json();
+    <!-- Explicabilidad -->
+    <section class="explainability-section">
+        <div class="container">
+            <h2 class="section-title">TRANSPARENCIA DEL MODELO</h2>
+            <div class="explainability-grid">
+                <div class="explainability-card">
+                    <h4>VARIABLES CONSIDERADAS</h4>
+                    <div class="variables-list">
+                        <span class="variable-tag">USD/MXN</span>
+                        <span class="variable-tag">INFLACIÓN</span>
+                        <span class="variable-tag">VENTAS HISTÓRICAS</span>
+                        <span class="variable-tag">GASTOS OPERATIVOS</span>
+                        <span class="variable-tag">ESTACIONALIDAD</span>
+                        <span class="variable-tag">TENDENCIAS</span>
+                    </div>
+                </div>
+                <div class="explainability-card">
+                    <h4>CONFIANZA DEL MODELO</h4>
+                    <div class="confidence-meter">
+                        <div class="confidence-bar" style="width: 87%"></div>
+                    </div>
+                    <p class="confidence-text">87% DE CONFIANZA</p>
+                    <p class="confidence-desc">Basado en 24 meses de datos históricos</p>
+                </div>
+                <div class="explainability-card">
+                    <h4>MODELO UTILIZADO</h4>
+                    <p class="model-info">PROPHET (META)</p>
+                    <p class="model-desc">Horizonte de predicción: 10 días</p>
+                    <p class="model-desc">Actualización: Tiempo real</p>
+                </div>
+                <div class="explainability-card">
+                    <h4>ÚLTIMA ACTUALIZACIÓN</h4>
+                    <p class="update-time" id="lastUpdate">HACE 5 MINUTOS</p>
+                    <p class="update-desc">Próxima actualización automática en 10 minutos</p>
+                </div>
+            </div>
+        </div>
+    </section>
 
-        if (data.error) {
-          responseDiv.innerHTML = "❌ " + data.error;
-          return;
-        }
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-logos">
+                <span class="logo">BANORTE</span>
+                <span class="footer-divider">×</span>
+                <span class="logo-subtitle">FINCORTEX VOICE</span>
+            </div>
+            <p class="footer-text">PLATAFORMA DE INTELIGENCIA FINANCIERA AVANZADA</p>
+            <p class="footer-copyright">2025 Grupo Financiero Banorte. Derechos reservados.</p>
+        </div>
+    </footer>
 
-        responseDiv.innerHTML = `<b>Respuesta del CFO:</b><br>${data.text}`;
-        if (data.audio_url) {
-          audioPlayer.src = `http://localhost:8000${data.audio_url}`;
-          audioPlayer.style.display = "block";
-          audioPlayer.play();
-        }
-      } catch (err) {
-        console.error(err);
-        responseDiv.innerHTML = "❌ Error conectando con el CFO Virtual.";
-      }
-    }
-  </script>
+<!-- ============================================= -->
+<!-- CHAT FLOTANTE - BANORTE FINCORTEX VOICE      -->
+<!-- ============================================= -->
+<!-- Botón flotante -->
+<button id="chatToggle" class="chat-float-btn" aria-label="Abrir chat IA">
+  <img src="Media/Logobl.png" alt="Chat IA" class="chat-float-icon" />
+</button>
+
+<!-- Modal / Contenedor del chat -->
+<div id="chatBackdrop" class="chat-backdrop hidden">
+  <div id="chatWindow" class="chat-window" role="dialog" aria-label="CFO Virtual IA">
+    <div id="chatDragHandle" class="chat-header">
+      <div class="chat-header-left">
+        <img src="Media/Logobl.png" alt="Logo" class="chat-header-logo" />
+        <div class="chat-header-title">
+          <strong>CFO Virtual IA</strong>
+          <span class="chat-status"><span class="dot"></span> Online</span>
+        </div>
+      </div>
+      <div class="chat-header-actions">
+        <button id="voiceModeBtn" class="icon-btn" title="Modo voz" aria-label="Modo voz">
+          <!-- mic icon -->
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+            <path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3Zm5-3a5 5 0 1 1-10 0H5a7 7 0 0 0 6 6.92V20H9v2h6v-2h-2v-2.08A7 7 0 0 0 19 11h-2Z"/>
+          </svg>
+        </button>
+        <button id="chatCloseBtn" class="icon-btn" title="Cerrar" aria-label="Cerrar">
+          <!-- close icon -->
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+            <path fill="currentColor" d="M18.3 5.71 12 12l6.3 6.29-1.41 1.42L10.59 13.4 4.3 19.71 2.89 18.3 9.17 12 2.89 5.71 4.3 4.29l6.29 6.29 6.29-6.29 1.42 1.42Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div id="chatBody" class="chat-body">
+      <div class="msg bot">Hola 👋 Soy tu CFO Virtual. Puedo responder tus dudas financieras o hablar por voz. ¿Cómo te ayudo hoy?</div>
+    </div>
+
+    <div class="chat-input-row">
+      <button id="inlineMicBtn" class="icon-btn" title="Hablar" aria-label="Hablar">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+          <path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3Zm5-3a5 5 0 1 1-10 0H5a7 7 0 0 0 6 6.92V20H9v2h6v-2h-2v-2.08A7 7 0 0 0 19 11h-2Z"/>
+        </svg>
+      </button>
+      <input id="chatInput" type="text" placeholder="Escribe tu mensaje..." />
+      <button id="chatSendBtn" class="send-btn" aria-label="Enviar">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+          <path fill="currentColor" d="M2 21 23 12 2 3v7l15 2-15 2v7Z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Overlay de MODO VOZ (pantalla completa) -->
+<div id="voiceOverlay" class="voice-overlay hidden" aria-hidden="true">
+  <div class="voice-panel">
+    <button id="voiceStopBtn" class="voice-close" title="Detener">
+      <!-- close -->
+      <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M18.3 5.71 12 12l6.3 6.29-1.41 1.42L10.59 13.4 4.3 19.71 2.89 18.3 9.17 12 2.89 5.71 4.3 4.29l6.29 6.29 6.29-6.29 1.42 1.42Z"/></svg>
+    </button>
+    <div class="voice-circle">
+      <img src="Media/Logobl.png" alt="IA" />
+      <canvas id="voiceWaves" width="280" height="80"></canvas>
+    </div>
+    <p class="voice-text">Escuchando…</p>
+  </div>
+</div>
+
+
+
+    <script src="main.js"></script>
 </body>
 </html>

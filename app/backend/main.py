@@ -82,7 +82,7 @@ def ask_gemini(question: str, forecast_hint: str = ""):
     - Si no hay datos suficientes, dilo claramente.
     """
 
-    model = genai.GenerativeModel("gemini-1.5-pro")
+    model = genai.GenerativeModel("gemini-1.5-flash")
     response = model.generate_content(context + "\n\nPregunta: " + question)
     return response.text
 

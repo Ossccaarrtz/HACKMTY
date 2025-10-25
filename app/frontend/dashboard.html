@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinCortex Voice - CFO Virtual Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+            color: #2c3e50;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        .header {
+            background: #E30613;
+            color: white;
+            padding: 1.5rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+
+        .logo-divider {
+            font-size: 1.5rem;
+            opacity: 0.7;
+        }
+
+        .logo-subtitle {
+            font-size: 1.2rem;
+            font-weight: 500;
+            opacity: 0.95;
+        }
+
+        .header-info {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .current-date {
+            font-size: 0.95rem;
+            opacity: 0.9;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .user-name {
+            font-weight: 500;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        /* Sections */
+        section {
+            padding: 3rem 0;
+        }
+
+        .section-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            color: #2c3e50;
+        }
+
+        /* KPIs */
+        .kpis-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .kpi-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+            display: flex;
+            gap: 1rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.12);
+        }
+
+        .kpi-icon {
+            font-size: 2.5rem;
+        }
+
+        .kpi-content {
+            flex: 1;
+        }
+
+        .kpi-label {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin-bottom: 0.5rem;
+        }
+
+        .kpi-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+
+        .kpi-trend {
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .kpi-trend.positive {
+            color: #27ae60;
+            background: #d5f4e6;
+        }
+
+        .kpi-trend.negative {
+            color: #e74c3c;
+            background: #fadbd8;
+        }
+
+        /* Charts */
+        .predictions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 2rem;
+        }
+
+        .chart-container, .simulator-container {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+        }
+
+        .chart-title, .simulator-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #2c3e50;
+        }
+
+        .chart-info {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #ecf0f1;
+        }
+
+        .data-source {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+        }
+
+        /* Simulator */
+        .simulator-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .control-group label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #ecf0f1;
+            outline: none;
+        }
+
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #E30613;
+            cursor: pointer;
+        }
+
+        .control-value {
+            font-weight: 600;
+            color: #E30613;
+        }
+
+        .simulator-results {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #E30613;
+        }
+
+        .result-text {
+            font-size: 0.95rem;
+            color: #2c3e50;
+        }
+
+        /* Chat */
+        .chat-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: #E30613;
+            color: white;
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-status {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .message {
+            display: flex;
+            gap: 1rem;
+            max-width: 80%;
+        }
+
+        .bot-message {
+            align-self: flex-start;
+        }
+
+        .user-message {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .bot-message .message-avatar {
+            background: #E30613;
+        }
+
+        .user-message .message-avatar {
+            background: #3498db;
+        }
+
+        .message-content {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 12px;
+        }
+
+        .user-message .message-content {
+            background: #e3f2fd;
+        }
+
+        .chat-input-container {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid #ecf0f1;
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.95rem;
+        }
+
+        /* Alerts */
+        .alerts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .alert-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+            display: flex;
+            gap: 1rem;
+            border-left: 4px solid;
+        }
+
+        .alert-warning {
+            border-left-color: #f39c12;
+        }
+
+        .alert-danger {
+            border-left-color: #e74c3c;
+        }
+
+        .alert-info {
+            border-left-color: #3498db;
+        }
+
+        .alert-icon {
+            font-size: 2rem;
+        }
+
+        .alert-content h4 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            color: #2c3e50;
+        }
+
+        .alert-content p {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin-bottom: 1rem;
+        }
+
+        .alert-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* Explicabilidad */
+        .explainability-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .explainability-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+        }
+
+        .explainability-card h4 {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            color: #2c3e50;
+        }
+
+        .variables-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .variable-tag {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .confidence-meter {
+            width: 100%;
+            height: 30px;
+            background: #ecf0f1;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+
+        .confidence-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #27ae60, #2ecc71);
+            transition: width 0.5s ease;
+        }
+
+        .confidence-text {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #27ae60;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #E30613;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #c00511;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(227, 6, 19, 0.3);
+        }
+
+        .btn-secondary {
+            background: #ecf0f1;
+            color: #2c3e50;
+        }
+
+        .btn-secondary:hover {
+            background: #d5dbdb;
+        }
+
+        .btn-small {
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+        }
+
+        .btn-icon {
+            width: 45px;
+            height: 45px;
+            border: none;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-icon:hover {
+            background: #e9ecef;
+            transform: scale(1.05);
+        }
+
+        /* Footer */
+        .footer {
+            background: #2c3e50;
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+            margin-top: 3rem;
+        }
+
+        .footer-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .footer-logos {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .footer-divider {
+            font-size: 1.5rem;
+            opacity: 0.5;
+        }
+
+        .footer p {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin: 0.5rem 0;
+        }
+
+        /* Animations */
+        .fade-in {
+            animation: fadeIn 0.6s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-container {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .predictions-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .kpis-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .alerts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .message {
+                max-width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-container">
+            <div class="logo-section">
+                <span class="logo">BANORTE</span>
+                <span class="logo-divider">|</span>
+                <span class="logo-subtitle">FinCortex Voice</span>
+            </div>
+            <div class="header-info">
+                <span class="current-date" id="currentDate"></span>
+                <div class="user-profile">
+                    <span class="user-name">Mi Empresa S.A.</span>
+                    <div class="user-avatar">🏢</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- KPIs Section -->
+    <section class="kpis-section">
+        <div class="container">
+            <h2 class="section-title">Resumen Financiero</h2>
+            <div class="kpis-grid">
+                <div class="kpi-card fade-in">
+                    <div class="kpi-icon">💰</div>
+                    <div class="kpi-content">
+                        <h3 class="kpi-label">Ingresos</h3>
+                        <p class="kpi-value" id="ingresos">$0</p>
+                        <span class="kpi-trend positive">+4.2%</span>
+                    </div>
+                </div>
+                <div class="kpi-card fade-in">
+                    <div class="kpi-icon">💸</div>
+                    <div class="kpi-content">
+                        <h3 class="kpi-label">Gastos</h3>
+                        <p class="kpi-value" id="gastos">$0</p>
+                        <span class="kpi-trend negative">-2.1%</span>
+                    </div>
+                </div>
+                <div class="kpi-card fade-in">
+                    <div class="kpi-icon">📈</div>
+                    <div class="kpi-content">
+                        <h3 class="kpi-label">Flujo de Caja</h3>
+                        <p class="kpi-value" id="flujo">$0</p>
+                        <span class="kpi-trend positive">+8.3%</span>
+                    </div>
+                </div>
+                <div class="kpi-card fade-in">
+                    <div class="kpi-icon">📊</div>
+                    <div class="kpi-content">
+                        <h3 class="kpi-label">Margen</h3>
+                        <p class="kpi-value" id="margen">0%</p>
+                        <span class="kpi-trend positive">+1.5%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Predictions & Simulator Section -->
+    <section class="predictions-section">
+        <div class="container">
+            <div class="predictions-grid">
+                <!-- Gráficos de Predicción -->
+                <div class="chart-container fade-in">
+                    <h3 class="chart-title">📉 Predicciones - Tipo de Cambio USD/MXN</h3>
+                    <canvas id="usdChart"></canvas>
+                    <div class="chart-info">
+                        <span class="data-source">📡 Datos en vivo de Banxico</span>
+                    </div>
+                </div>
+
+                <div class="chart-container fade-in">
+                    <h3 class="chart-title">📈 Predicciones - Inflación</h3>
+                    <canvas id="inflacionChart"></canvas>
+                    <div class="chart-info">
+                        <span class="data-source">📡 Datos en vivo de INEGI</span>
+                    </div>
+                </div>
+
+                <!-- Simulador What-If -->
+                <div class="simulator-container fade-in">
+                    <h3 class="simulator-title">⚙️ Simulador "What-If"</h3>
+                    <div class="simulator-controls">
+                        <div class="control-group">
+                            <label for="preciosSlider">Aumentar precios (%)</label>
+                            <input type="range" id="preciosSlider" min="-10" max="10" value="0" step="0.5">
+                            <span class="control-value" id="preciosValue">0%</span>
+                        </div>
+                        <div class="control-group">
+                            <label for="gastosSlider">Reducir gastos (%)</label>
+                            <input type="range" id="gastosSlider" min="-10" max="10" value="0" step="0.5">
+                            <span class="control-value" id="gastosValue">0%</span>
+                        </div>
+                        <div class="control-group">
+                            <label for="tipoCambioSlider">Variación tipo de cambio (%)</label>
+                            <input type="range" id="tipoCambioSlider" min="-5" max="5" value="0" step="0.1">
+                            <span class="control-value" id="tipoCambioValue">0%</span>
+                        </div>
+                        <button class="btn btn-primary" id="simularBtn">Simular Impacto</button>
+                    </div>
+                    <div class="simulator-results" id="simulatorResults">
+                        <p class="result-text">Ajusta los controles y presiona "Simular Impacto" para ver los resultados</p>
+                    </div>
+                </div>
+
+                <div class="chart-container fade-in">
+                    <h3 class="chart-title">📊 Proyección de Ingresos</h3>
+                    <canvas id="ingresosChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Chat CFO Virtual -->
+    <section class="chat-section">
+        <div class="container">
+            <div class="chat-container fade-in">
+                <div class="chat-header">
+                    <h3>🤖 Chat CFO Virtual</h3>
+                    <span class="chat-status">● En línea</span>
+                </div>
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message bot-message">
+                        <div class="message-avatar">🤖</div>
+                        <div class="message-content">
+                            <p>Hola, soy tu CFO Virtual. ¿En qué puedo ayudarte hoy? Puedo analizar tus finanzas, hacer predicciones y darte recomendaciones estratégicas.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="chat-input-container">
+                    <input type="text" id="chatInput" class="chat-input" placeholder="Escribe tu pregunta o usa el micrófono...">
+                    <button class="btn-icon" id="voiceBtn" title="Usar micrófono">🎙️</button>
+                    <button class="btn btn-primary" id="sendBtn">Enviar</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Alertas y Recomendaciones -->
+    <section class="alerts-section">
+        <div class="container">
+            <h2 class="section-title">⚠️ Alertas y Recomendaciones Inteligentes</h2>
+            <div class="alerts-grid" id="alertsContainer">
+                <div class="alert-card alert-warning fade-in">
+                    <div class="alert-icon">🚨</div>
+                    <div class="alert-content">
+                        <h4>Inflación proyectada alta</h4>
+                        <p>La inflación podría alcanzar 5.8% en los próximos 30 días. Recomendamos ajustar precios +3%.</p>
+                        <div class="alert-actions">
+                            <button class="btn btn-small btn-primary">Aceptar recomendación</button>
+                            <button class="btn btn-small btn-secondary">Ignorar</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="alert-card alert-danger fade-in">
+                    <div class="alert-icon">⚠️</div>
+                    <div class="alert-content">
+                        <h4>Flujo de caja negativo</h4>
+                        <p>Se proyecta flujo negativo en 10 días. Considera reducir gastos operativos en 8%.</p>
+                        <div class="alert-actions">
+                            <button class="btn btn-small btn-primary">Ver detalles</button>
+                            <button class="btn btn-small btn-secondary">Ignorar</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="alert-card alert-info fade-in">
+                    <div class="alert-icon">💡</div>
+                    <div class="alert-content">
+                        <h4>Oportunidad de ahorro</h4>
+                        <p>El dólar podría bajar 2.3% la próxima semana. Buen momento para importaciones.</p>
+                        <div class="alert-actions">
+                            <button class="btn btn-small btn-primary">Planificar compras</button>
+                            <button class="btn btn-small btn-secondary">Recordar después</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Explicabilidad -->
+    <section class="explainability-section">
+        <div class="container">
+            <h2 class="section-title">🔍 Explicabilidad del Modelo</h2>
+            <div class="explainability-container fade-in">
+                <div class="explainability-card">
+                    <h4>Variables Consideradas</h4>
+                    <div class="variables-list">
+                        <span class="variable-tag">USD/MXN</span>
+                        <span class="variable-tag">Inflación</span>
+                        <span class="variable-tag">Ventas históricas</span>
+                        <span class="variable-tag">Gastos operativos</span>
+                        <span class="variable-tag">Estacionalidad</span>
+                    </div>
+                </div>
+                <div class="explainability-card">
+                    <h4>Confianza del Modelo</h4>
+                    <div class="confidence-meter">
+                        <div class="confidence-bar" style="width: 87%"></div>
+                    </div>
+                    <p class="confidence-text">87% de confianza</p>
+                </div>
+                <div class="explainability-card">
+                    <h4>Modelo Utilizado</h4>
+                    <p>Prophet (Facebook) con horizonte de predicción de 10 días</p>
+                </div>
+                <div class="explainability-card">
+                    <h4>Última Actualización</h4>
+                    <p id="lastUpdate">Hace 5 minutos</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-logos">
+                <span class="logo">BANORTE</span>
+                <span class="footer-divider">×</span>
+                <span class="logo-subtitle">FinCortex Voice</span>
+            </div>
+            <p>HackMTY 2025 - Conectado a APIs reales (Banxico, INEGI)</p>
+            <p>&copy; 2025 FinCortex. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Actualizar fecha
+        function updateDate() {
+            const now = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('es-MX', options);
+        }
+        updateDate();
+
+        // Animar KPIs
+        function animateValue(id, start, end, duration, prefix = '$', suffix = '') {
+            const obj = document.getElementById(id);
+            const range = end - start;
+            const increment = end > start ? 1 : -1;
+            const stepTime = Math.abs(Math.floor(duration / range));
+            let current = start;
+            
+            const timer = setInterval(() => {
+                current += increment * Math.ceil(range / 100);
+                if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
+                    current = end;
+                    clearInterval(timer);
+                }
+                obj.textContent = prefix + current.toLocaleString('es-MX') + suffix;
+            }, stepTime);
+        }
+
+        // Inicializar KPIs con animación
+        setTimeout(() => {
+            animateValue('ingresos', 0, 2450000, 1500);
+            animateValue('gastos', 0, 1850000, 1500);
+            animateValue('flujo', 0, 600000, 1500);
+            animateValue('margen', 0, 24.5, 1500, '', '%');
+        }, 300);
+
+        // Gráfico USD/MXN
+        const usdCtx = document.getElementById('usdChart').getContext('2d');
+        const usdChart = new Chart(usdCtx, {
+            type: 'line',
+            data: {
+                labels: ['Día 1', 'Día 2', 'Día 3', 'Día 4', 'Día 5', 'Día 6', 'Día 7', 'Día 8', 'Día 9', 'Día 10'],
+                datasets: [{
+                    label: 'Histórico',
+                    data: [20.15, 20.18, 20.12, 20.25, 20.30, 20.28, 20.35, 20.40, 20.38, 20.42],
+                    borderColor: '#3498db',
+                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }, {
+                    label: 'Predicción',
+                    data: [null, null, null, null, null, null, null, 20.40, 20.45, 20.48],
+                    borderColor: '#E30613',
+                    backgroundColor: 'rgba(227, 6, 19, 0.1)',
+                    borderDash: [5, 5],
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        min: 20,
+                        max: 21
+                    }
+                }
+            }
+        });
+
+        // Gráfico Inflación
+        const inflacionCtx = document.getElementById('inflacionChart').getContext('2d');
+        const inflacionChart = new Chart(inflacionCtx, {
+            type: 'line',
+            data: {
+                labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct'],
+                datasets: [{
+                    label: 'Histórico',
+                    data: [4.8, 4.9, 5.1, 5.3, 5.2, 5.4, 5.6, 5.5, 5.7, 5.8],
+                    borderColor: '#9b59b6',
+                    backgroundColor: 'rgba(155, 89, 182, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }, {
+                    label: 'Predicción',
+                    data: [null, null, null, null, null, null, null, 5.5, 5.7, 5.9],
+                    borderColor: '#E30613',
+                    backgroundColor: 'rgba(227, 6, 19, 0.1)',
+                    borderDash: [5, 5],
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        min: 4,
+                        max: 7,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Gráfico Ingresos
+        const ingresosCtx = document.getElementById('ingresosChart').getContext('2d');
+        const ingresosChart = new Chart(ingresosCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct'],
+                datasets: [{
+                    label: 'Ingresos (MXN)',
+                    data: [2100000, 2250000, 2180000, 2350000, 2420000, 2380000, 2450000, 2500000, 2480000, 2550000],
+                    backgroundColor: '#27ae60',
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + (value / 1000000).toFixed(1) + 'M';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Simulador What-If
+        const preciosSlider = document.getElementById('preciosSlider');
+        const gastosSlider = document.getElementById('gastosSlider');
+        const tipoCambioSlider = document.getElementById('tipoCambioSlider');
+        const preciosValue = document.getElementById('preciosValue');
+        const gastosValue = document.getElementById('gastosValue');
+        const tipoCambioValue = document.getElementById('tipoCambioValue');
+        const simularBtn = document.getElementById('simularBtn');
+        const simulatorResults = document.getElementById('simulatorResults');
+
+        preciosSlider.addEventListener('input', (e) => {
+            preciosValue.textContent = e.target.value + '%';
+        });
+
+        gastosSlider.addEventListener('input', (e) => {
+            gastosValue.textContent = e.target.value + '%';
+        });
+
+        tipoCambioSlider.addEventListener('input', (e) => {
+            tipoCambioValue.textContent = e.target.value + '%';
+        });
+
+        simularBtn.addEventListener('click', () => {
+            const preciosChange = parseFloat(preciosSlider.value);
+            const gastosChange = parseFloat(gastosSlider.value);
+            const tipoCambioChange = parseFloat(tipoCambioSlider.value);
+
+            // Valores base
+            const ingresosBase = 2450000;
+            const gastosBase = 1850000;
+            const flujoBase = 600000;
+
+            // Calcular nuevos valores
+            const nuevosIngresos = ingresosBase * (1 + preciosChange / 100);
+            const nuevosGastos = gastosBase * (1 - gastosChange / 100) * (1 + tipoCambioChange / 100);
+            const nuevoFlujo = nuevosIngresos - nuevosGastos;
+            const cambioFlujo = ((nuevoFlujo - flujoBase) / flujoBase * 100).toFixed(1);
+
+            simulatorResults.innerHTML = `
+                <p class="result-text"><strong>Resultados de la Simulación:</strong></p>
+                <p class="result-text">• Nuevos Ingresos: $${nuevosIngresos.toLocaleString('es-MX', {maximumFractionDigits: 0})}</p>
+                <p class="result-text">• Nuevos Gastos: $${nuevosGastos.toLocaleString('es-MX', {maximumFractionDigits: 0})}</p>
+                <p class="result-text">• Nuevo Flujo de Caja: $${nuevoFlujo.toLocaleString('es-MX', {maximumFractionDigits: 0})}</p>
+                <p class="result-text" style="color: ${cambioFlujo >= 0 ? '#27ae60' : '#e74c3c'}; font-weight: 600;">
+                    ${cambioFlujo >= 0 ? '↑' : '↓'} Cambio en flujo: ${cambioFlujo}%
+                </p>
+            `;
+        });
+
+        // Chat CFO Virtual
+        const chatInput = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const voiceBtn = document.getElementById('voiceBtn');
+        const chatMessages = document.getElementById('chatMessages');
+
+        function addMessage(text, isUser = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+            messageDiv.innerHTML = `
+                <div class="message-avatar">${isUser ? '👤' : '🤖'}</div>
+                <div class="message-content">
+                    <p>${text}</p>
+                </div>
+            `;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        sendBtn.addEventListener('click', () => {
+            const message = chatInput.value.trim();
+            if (message) {
+                addMessage(message, true);
+                chatInput.value = '';
+                
+                // Simular respuesta del CFO (aquí conectarás tu API)
+                setTimeout(() => {
+                    addMessage('Entiendo tu pregunta. Basándome en los datos actuales y las predicciones, te recomiendo... [Aquí se conectará con tu API de backend]');
+                }, 1000);
+            }
+        });
+
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendBtn.click();
+            }
+        });
+
+        // Web Speech API para voz (placeholder)
+        voiceBtn.addEventListener('click', () => {
+            alert('Funcionalidad de voz: Aquí se integrará Web Speech API + ElevenLabs cuando conectes el backend');
+        });
+    </script>
+</body>
+</html>
