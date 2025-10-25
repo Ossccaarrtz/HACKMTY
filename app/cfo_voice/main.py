@@ -1,93 +1,124 @@
-import os
 from flask import Flask, request, jsonify, send_from_directory
-import google.generativeai as genai
+from flask_cors import CORS
+import os
 import requests
-import uuid
+import google.generativeai as genai
+import speech_recognition as sr
+from pydub import AudioSegment
+from dotenv import load_dotenv
 
+# ==========================
+# ⚙️ Configuración inicial
+# ==========================
+load_dotenv()
 app = Flask(__name__)
+CORS(app)
 
-# Configuración de Gemini y ElevenLabs
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-ELEVEN_API_KEY = os.getenv("ELEVENLABS_API_KEY")
 AUDIO_DIR = os.getenv("AUDIO_DIR", "/app/audio")
 os.makedirs(AUDIO_DIR, exist_ok=True)
 
-# Contexto y memoria conversacional
-conversation_history = []
+GEMINI_KEY = os.getenv("GEMINI_API_KEY")
+ELEVEN_KEY = os.getenv("ELEVEN_API_KEY")
+BACKEND_URL = os.getenv("BACKEND_URL", "http://backend-ai:5000")
 
-def synthesize_audio(text, filename):
-    """Convierte texto en voz usando ElevenLabs"""
-    voice_id = "Rachel"  # puedes cambiarlo
-    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
-    headers = {
-        "Accept": "audio/mpeg",
-        "xi-api-key": ELEVEN_API_KEY,
-        "Content-Type": "application/json"
-    }
-    data = {
-        "text": text,
-        "model_id": "eleven_multilingual_v2",
-        "voice_settings": {"stability": 0.7, "similarity_boost": 0.9}
-    }
+genai.configure(api_key=GEMINI_KEY)
+MODEL = genai.GenerativeModel("gemini-2.5-pro")
 
-    r = requests.post(url, json=data, headers=headers)
-    if r.status_code == 200:
-        filepath = os.path.join(AUDIO_DIR, filename)
-        with open(filepath, "wb") as f:
-            f.write(r.content)
-        return f"/audio/{filename}"
-    else:
-        print("Error en ElevenLabs:", r.text)
+VOICE_ID_RACHEL = "21m00Tcm4TlvDq8ikWAM"
+ELEVEN_TTS_URL = f"https://api.elevenlabs.io/v1/text-to-speech/{VOICE_ID_RACHEL}"
+
+# ==========================
+# 🧠 Gemini (texto → respuesta)
+# ==========================
+def get_gemini_response(prompt: str) -> str:
+    try:
+        result = MODEL.generate_content(prompt)
+        return result.text.strip()
+    except Exception as e:
+        print(f"[Gemini Error] {e}")
+        return "Lo siento, no pude generar una respuesta en este momento."
+
+# ==========================
+# 🎧 Speech-to-Text
+# ==========================
+def speech_to_text(file_path: str) -> str:
+    recognizer = sr.Recognizer()
+    with sr.AudioFile(file_path) as source:
+        audio = recognizer.record(source)
+    try:
+        return recognizer.recognize_google(audio, language="es-MX")
+    except Exception as e:
+        print(f"[STT Error] {e}")
         return None
 
+# ==========================
+# 🔊 ElevenLabs (texto → voz)
+# ==========================
+def synthesize_voice(text: str) -> str:
+    headers = {
+        "Accept": "audio/mpeg",
+        "Content-Type": "application/json",
+        "xi-api-key": ELEVEN_KEY
+    }
+    payload = {
+        "text": text,
+        "voice_settings": {"stability": 0.5, "similarity_boost": 0.8}
+    }
 
+    try:
+        r = requests.post(ELEVEN_TTS_URL, headers=headers, json=payload)
+        if r.status_code != 200:
+            print(f"[ElevenLabs Error] {r.text}")
+            return None
+
+        filename = f"resp_{len(os.listdir(AUDIO_DIR)) + 1}.mp3"
+        file_path = os.path.join(AUDIO_DIR, filename)
+        with open(file_path, "wb") as f:
+            f.write(r.content)
+        return filename
+    except Exception as e:
+        print(f"[TTS Error] {e}")
+        return None
+
+# ==========================
+# 🌐 Endpoint /ask
+# ==========================
 @app.route("/ask", methods=["POST"])
 def ask():
-    data = request.get_json()
-    user_question = data.get("question", "")
+    question = None
 
-    conversation_history.append({"role": "user", "content": user_question})
+    if request.content_type.startswith("application/json"):
+        data = request.get_json()
+        question = data.get("question", "").strip()
 
-    # Prompt contextual para Gemini
-    system_prompt = (
-        "Eres FinCortex, un CFO virtual con voz profesional, empática y clara. "
-        "Respondes en español a preguntas sobre finanzas, inversiones o negocios. "
-        "Da explicaciones entendibles, con una conclusión práctica breve."
-    )
+    elif "audio" in request.files:
+        audio_file = request.files["audio"]
+        temp_path = os.path.join(AUDIO_DIR, "input_temp.webm")
+        audio_file.save(temp_path)
 
-    full_prompt = system_prompt + "\n\nHistorial:\n" + "\n".join(
-        [f"{m['role'].upper()}: {m['content']}" for m in conversation_history]
-    )
+        wav_path = temp_path.replace(".webm", ".wav").replace(".mp3", ".wav")
+        sound = AudioSegment.from_file(temp_path)
+        sound.export(wav_path, format="wav")
 
-    # Llamada a Gemini 1.5 Pro
-    model = genai.GenerativeModel("gemini-1.5-pro-latest")
-    response = model.generate_content(full_prompt)
+        question = speech_to_text(wav_path)
+        os.remove(temp_path)
+        os.remove(wav_path)
 
-    answer = response.text if response and hasattr(response, "text") else "No pude generar respuesta."
-    confidence = 0.9
+    if not question:
+        return jsonify({"error": "No se recibió pregunta válida"}), 400
 
-    # Generar audio
-    filename = f"respuesta_{uuid.uuid4().hex[:8]}.mp3"
-    audio_url = synthesize_audio(answer, filename)
-
-    conversation_history.append({"role": "assistant", "content": answer})
+    answer = get_gemini_response(question)
+    audio_filename = synthesize_voice(answer)
 
     return jsonify({
-        "response_text": answer,
-        "confidence": confidence,
-        "audio_url": audio_url
+        "text": answer,
+        "audio_url": f"/audio/{audio_filename}" if audio_filename else None
     })
-
 
 @app.route("/audio/<path:filename>")
 def serve_audio(filename):
-    return send_from_directory(AUDIO_DIR, filename)
-
-
-@app.route("/")
-def home():
-    return jsonify({"message": "FinCortex CFO Voice con Gemini activo"}), 200
-
+    return send_from_directory(AUDIO_DIR, filename, mimetype="audio/mpeg")
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000)
+    port = int(os.getenv("PORT", 8000))
+    app.run(host="0.0.0.0", port=port, debug=True)

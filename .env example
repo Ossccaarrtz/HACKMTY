@@ -1,0 +1,19 @@
+# === 🔑 API Keys ===
+# Clave de Gemini (obtenla desde Google AI Studio)
+GEMINI_API_KEY=tu_api_key_de_gemini_aqui
+
+# Clave de ElevenLabs (desde https://elevenlabs.io)
+ELEVEN_API_KEY=tu_api_key_de_elevenlabs_aqui
+
+# === 🗣️ Voice Configuration (ElevenLabs) ===
+# ID de voz (Rachel, Adam, Bella, etc.)
+ELEVEN_VOICE_ID=21m00Tcm4TlvDq8ikWAM
+
+# === 🎵 Audio Storage ===
+# Carpeta donde se guardan los audios generados
+AUDIO_DIR=/app/audio
+
+# === 🌐 Internal Service URLs (Docker) ===
+BACKEND_URL=http://backend-ai:5000
+CFO_URL=http://cfo-voice:8000
+DATA_URL=http://data-integration:5050

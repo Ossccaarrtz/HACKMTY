@@ -1,47 +1,70 @@
+version: "3.9"
+
 services:
   backend-ai:
     build:
       context: .
       dockerfile: docker/backend.Dockerfile
+    container_name: fincortex-backend-ai
     ports:
       - "5000:5000"
     env_file:
       - .env
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+    networks:
+      - fincortex_net
+    restart: unless-stopped
 
   cfo-voice:
     build:
       context: .
       dockerfile: docker/cfo-voice.Dockerfile
-    env_file: .env
+    container_name: fincortex-cfo-voice
+    env_file:
+      - .env
+    environment:
+      - ELEVEN_API_KEY=${ELEVEN_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}   # ✅ SE AGREGA AQUÍ
+      - BACKEND_URL=http://backend-ai:5000
     volumes:
       - audio_cache:/app/audio
     ports:
       - "8000:8000"
+    depends_on:
+      - backend-ai
     networks:
       - fincortex_net
+    restart: unless-stopped
 
   frontend-ui:
     build:
       context: .
       dockerfile: docker/frontend.Dockerfile
+    container_name: fincortex-frontend-ui
     ports:
       - "5173:80"
     depends_on:
       - backend-ai
       - cfo-voice
+      - data-integration
+    environment:
+      - API_BACKEND=http://backend-ai:5000
+      - API_CFO=http://cfo-voice:8000
     networks:
       - fincortex_net
+    restart: unless-stopped
 
   data-integration:
     build:
       context: .
       dockerfile: docker/data-integration.Dockerfile
+    container_name: fincortex-data-integration
     ports:
       - "5050:5050"
     networks:
       - fincortex_net
+    restart: unless-stopped
 
 volumes:
   audio_cache:

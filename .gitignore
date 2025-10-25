@@ -1,0 +1,23 @@
+# === 🔐 Archivos sensibles ===
+.env
+
+# === 🧩 Archivos temporales de Docker ===
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.pid
+*.sock
+*.mp3
+/app/audio/
+audio_cache/
+
+# === 🐳 Docker artefacts ===
+*.env.backup
+*.DS_Store
+docker-compose.override.yml
+
+# === 🧠 IDEs ===
+.vscode/
+.idea/
