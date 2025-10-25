@@ -81,13 +81,12 @@ const chartColors = {
   info: "#3b82f6",
 };
 
-// 🔮 Cargar forecast desde backend
 async function fetchForecast(serie) {
   try {
     const res = await fetch(`http://127.0.0.1:8000/forecast/${serie}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    return data.slice(-10); // últimos 10 puntos
+    return data.slice(-10);
   } catch (err) {
     console.error("❌ Error al obtener forecast:", err);
     return null;
@@ -100,7 +99,7 @@ function createChart(ctxId, config) {
   new Chart(ctx.getContext("2d"), config);
 }
 
-// --- USD/MXN (Datos reales de Prophet) ---
+// --- USD/MXN ---
 (async () => {
   const forecast = await fetchForecast("tipo_cambio_fix");
   const ctx = document.getElementById("usdChart");
@@ -120,7 +119,7 @@ function createChart(ctxId, config) {
           label: "Predicción (Prophet)",
           data: predData,
           borderColor: chartColors.primary,
-          backgroundColor: "rgba(227, 6, 19, 0.1)",
+          backgroundColor: "rgba(227,6,19,0.1)",
           borderDash: [5, 5],
           tension: 0.4,
           fill: true,
@@ -150,163 +149,8 @@ function createChart(ctxId, config) {
   });
 })();
 
-// --- INFLACIÓN (placeholder) ---
-createChart("inflacionChart", {
-  type: "line",
-  data: {
-    labels: [
-      "Ene",
-      "Feb",
-      "Mar",
-      "Abr",
-      "May",
-      "Jun",
-      "Jul",
-      "Ago",
-      "Sep",
-      "Oct",
-    ],
-    datasets: [
-      {
-        label: "Histórico",
-        data: [4.8, 4.9, 5.1, 5.3, 5.2, 5.4, 5.6, 5.5, 5.7, 5.8],
-        borderColor: chartColors.warning,
-        backgroundColor: "rgba(245,158,11,0.1)",
-        tension: 0.4,
-        fill: true,
-        borderWidth: 2,
-      },
-      {
-        label: "Predicción (Dummy)",
-        data: [null, null, null, null, null, null, null, 5.5, 5.7, 5.9],
-        borderColor: chartColors.primary,
-        backgroundColor: "rgba(227,6,19,0.1)",
-        borderDash: [5, 5],
-        tension: 0.4,
-        fill: true,
-        borderWidth: 2,
-      },
-    ],
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { display: true, position: "top" } },
-    scales: {
-      y: {
-        beginAtZero: false,
-        min: 4,
-        max: 7,
-        ticks: { callback: (v) => v + "%" },
-      },
-      x: { grid: { display: false } },
-    },
-  },
-});
-
-// --- INGRESOS ---
-createChart("ingresosChart", {
-  type: "bar",
-  data: {
-    labels: [
-      "Ene",
-      "Feb",
-      "Mar",
-      "Abr",
-      "May",
-      "Jun",
-      "Jul",
-      "Ago",
-      "Sep",
-      "Oct",
-    ],
-    datasets: [
-      {
-        label: "Ingresos (MXN)",
-        data: [
-          2100000, 2250000, 2180000, 2350000, 2420000, 2380000, 2450000,
-          2500000, 2480000, 2550000,
-        ],
-        backgroundColor: chartColors.success,
-        borderRadius: 8,
-        borderWidth: 0,
-      },
-    ],
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { display: false } },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: { callback: (v) => "$" + (v / 1000000).toFixed(1) + "M" },
-      },
-      x: { grid: { display: false } },
-    },
-  },
-});
-
 // =========================================================
-// SIMULADOR WHAT-IF
-// =========================================================
-const sliders = ["precios", "gastos", "tipoCambio"];
-sliders.forEach((id) => {
-  const slider = document.getElementById(id + "Slider");
-  const value = document.getElementById(id + "Value");
-  if (slider && value) {
-    slider.addEventListener(
-      "input",
-      (e) => (value.textContent = e.target.value + "%")
-    );
-  }
-});
-const simularBtn = document.getElementById("simularBtn");
-if (simularBtn) {
-  simularBtn.addEventListener("click", () => {
-    const ingresosBase = 2450000,
-      gastosBase = 1850000,
-      flujoBase = 600000;
-    const preciosChange = parseFloat(
-      document.getElementById("preciosSlider").value
-    );
-    const gastosChange = parseFloat(
-      document.getElementById("gastosSlider").value
-    );
-    const tipoCambioChange = parseFloat(
-      document.getElementById("tipoCambioSlider").value
-    );
-    const nuevosIngresos = ingresosBase * (1 + preciosChange / 100);
-    const nuevosGastos =
-      gastosBase * (1 - gastosChange / 100) * (1 + tipoCambioChange / 100);
-    const nuevoFlujo = nuevosIngresos - nuevosGastos;
-    const cambioFlujo = (((nuevoFlujo - flujoBase) / flujoBase) * 100).toFixed(
-      1
-    );
-    const simulatorResults = document.getElementById("simulatorResults");
-    simulatorResults.innerHTML = `
-      <p class="result-text"><strong>Resultados de la Simulación:</strong></p>
-      <p class="result-text">• Ingresos Proyectados: $${nuevosIngresos.toLocaleString(
-        "es-MX"
-      )}</p>
-      <p class="result-text">• Gastos Proyectados: $${nuevosGastos.toLocaleString(
-        "es-MX"
-      )}</p>
-      <p class="result-text">• Flujo de Caja Proyectado: $${nuevoFlujo.toLocaleString(
-        "es-MX"
-      )}</p>
-      <p class="result-text" style="color:${
-        cambioFlujo >= 0 ? "#059669" : "#dc2626"
-      };font-weight:700;">
-        ${cambioFlujo >= 0 ? "↑" : "↓"} Variación en flujo: ${Math.abs(
-      cambioFlujo
-    )}%
-      </p>`;
-  });
-}
-
-// =========================================================
-// CHAT FLOTANTE + VOZ IA
+// CHAT FLOTANTE + VOZ IA (PUSH TO TALK)
 // =========================================================
 (() => {
   const qs = (sel) => document.querySelector(sel);
@@ -318,12 +162,9 @@ if (simularBtn) {
   const chatInput = qs("#chatInput");
   const chatSendBtn = qs("#chatSendBtn");
   const chatCloseBtn = qs("#chatCloseBtn");
-
   const voiceModeBtn = qs("#voiceModeBtn");
   const voiceOverlay = qs("#voiceOverlay");
-  const voiceStopBtn = qs("#voiceStopBtn");
   const voiceCanvas = qs("#voiceWaves");
-  const dragHandle = qs("#chatDragHandle");
 
   // ---- Abrir / cerrar chat ----
   function openChat() {
@@ -334,14 +175,13 @@ if (simularBtn) {
     chatBackdrop.classList.add("hidden");
     chatToggle.style.display = "";
   }
-
   chatToggle?.addEventListener("click", openChat);
   chatCloseBtn?.addEventListener("click", closeChat);
   chatBackdrop?.addEventListener("click", (e) => {
     if (e.target === chatBackdrop) closeChat();
   });
 
-  // ---- Enviar mensaje ----
+  // ---- Mostrar mensajes ----
   function appendMessage(text, who = "user") {
     const div = document.createElement("div");
     div.className = `msg ${who}`;
@@ -350,12 +190,12 @@ if (simularBtn) {
     chatBody.scrollTop = chatBody.scrollHeight;
   }
 
+  // ---- Enviar texto ----
   async function sendChat() {
     const text = (chatInput?.value || "").trim();
     if (!text) return;
     appendMessage(text, "user");
     chatInput.value = "";
-
     appendMessage("🤖 Analizando tu consulta...", "bot");
 
     try {
@@ -366,88 +206,181 @@ if (simularBtn) {
       });
       const data = await res.json();
       appendMessage(data.text || "No se obtuvo respuesta.", "bot");
+
+      if (data.audio_base64) {
+        const audio = new Audio("data:audio/mp3;base64," + data.audio_base64);
+        audio.play();
+      }
     } catch (err) {
       appendMessage("Error al conectar con el servidor.", "bot");
       console.error(err);
     }
   }
-
   chatSendBtn?.addEventListener("click", sendChat);
   chatInput?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") sendChat();
   });
 
-  // ---- Arrastrar ventana ----
-  let isDragging = false,
-    startX = 0,
-    startY = 0,
-    startLeft = 0,
-    startTop = 0;
-  const canDrag = () => window.matchMedia("(min-width: 992px)").matches;
-
-  dragHandle?.addEventListener("mousedown", (e) => {
-    if (!canDrag()) return;
-    isDragging = true;
-    const rect = chatWindow.getBoundingClientRect();
-    startX = e.clientX;
-    startY = e.clientY;
-    startLeft = rect.left;
-    startTop = rect.top;
-    document.body.style.userSelect = "none";
-  });
-  window.addEventListener("mousemove", (e) => {
-    if (!isDragging) return;
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
-    chatWindow.style.position = "fixed";
-    chatWindow.style.left = `${startLeft + dx}px`;
-    chatWindow.style.top = `${startTop + dy}px`;
-  });
-  window.addEventListener("mouseup", () => {
-    if (isDragging) {
-      isDragging = false;
-      document.body.style.userSelect = "";
-    }
-  });
-
-  // ---- Modo voz ----
-  let audioCtx, analyser, micStream, dataArray, rafId;
+  // =========================================================
+  // 🎙️ VOZ: PUSH TO TALK + TRANSCRIPCIÓN EN CHAT
+  // =========================================================
+  let mediaRecorder,
+    audioChunks = [],
+    currentStream = null;
 
   async function startVoice() {
     try {
-      micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const src = audioCtx.createMediaStreamSource(micStream);
-      analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 256;
-      const bufferLength = analyser.frequencyBinCount;
-      dataArray = new Uint8Array(bufferLength);
-      src.connect(analyser);
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      currentStream = stream;
+      audioChunks = [];
+      mediaRecorder = new MediaRecorder(stream);
+
       voiceOverlay.classList.remove("hidden");
-      drawWaves();
+      appendMessage("🎙️ Escuchando... mantén presionado para hablar.", "bot");
+      drawWaves(stream);
+
+      mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+
+      mediaRecorder.onstop = async () => {
+        const webmBlob = new Blob(audioChunks, { type: "audio/webm" });
+        const arrayBuffer = await webmBlob.arrayBuffer();
+        const audioCtx = new AudioContext();
+        const decoded = await audioCtx.decodeAudioData(arrayBuffer);
+        const wavBuffer = audioBufferToWav(decoded);
+        const wavBlob = new Blob([wavBuffer], { type: "audio/wav" });
+
+        const formData = new FormData();
+        formData.append("audio", wavBlob, "voz.wav");
+
+        appendMessage("🤖 Analizando tu voz...", "bot");
+
+        try {
+          const res = await fetch("http://127.0.0.1:8000/ask", {
+            method: "POST",
+            body: formData,
+          });
+          const data = await res.json();
+
+          // Mostrar la transcripción si existe
+          if (data.transcription) appendMessage(data.transcription, "user");
+
+          appendMessage(data.text || "No se obtuvo respuesta.", "bot");
+
+          if (data.audio_base64) {
+            const audio = new Audio(
+              "data:audio/mp3;base64," + data.audio_base64
+            );
+            audio.play();
+          }
+        } catch (err) {
+          appendMessage("Error al procesar la voz.", "bot");
+          console.error(err);
+        }
+
+        stopVoice();
+      };
+
+      mediaRecorder.start();
     } catch (err) {
-      alert("No se pudo acceder al micrófono. Verifica permisos.");
+      alert("No se pudo acceder al micrófono.");
       console.error(err);
     }
   }
 
   function stopVoice() {
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+      mediaRecorder.stop();
+    }
+    if (currentStream) {
+      currentStream.getTracks().forEach((t) => t.stop());
+      currentStream = null;
+    }
     cancelAnimationFrame(rafId);
-    if (micStream) micStream.getTracks().forEach((t) => t.stop());
-    if (audioCtx) audioCtx.close();
-    micStream = null;
-    audioCtx = null;
-    analyser = null;
     voiceOverlay.classList.add("hidden");
   }
 
-  function drawWaves() {
+  // ---- Eventos push-to-talk ----
+  voiceModeBtn?.addEventListener("mousedown", startVoice);
+  voiceModeBtn?.addEventListener("mouseup", stopVoice);
+  voiceModeBtn?.addEventListener("touchstart", startVoice);
+  voiceModeBtn?.addEventListener("touchend", stopVoice);
+
+  // 🔊 Conversión a WAV PCM16
+  function audioBufferToWav(buffer) {
+    const numOfChan = buffer.numberOfChannels;
+    const length = buffer.length * numOfChan * 2 + 44;
+    const outBuffer = new ArrayBuffer(length);
+    const view = new DataView(outBuffer);
+    const channels = [];
+    let pos = 0;
+
+    writeUTFBytes(view, pos, "RIFF");
+    pos += 4;
+    view.setUint32(pos, 36 + buffer.length * numOfChan * 2, true);
+    pos += 4;
+    writeUTFBytes(view, pos, "WAVE");
+    pos += 4;
+    writeUTFBytes(view, pos, "fmt ");
+    pos += 4;
+    view.setUint32(pos, 16, true);
+    pos += 4;
+    view.setUint16(pos, 1, true);
+    pos += 2;
+    view.setUint16(pos, numOfChan, true);
+    pos += 2;
+    view.setUint32(pos, buffer.sampleRate, true);
+    pos += 4;
+    view.setUint32(pos, buffer.sampleRate * 2 * numOfChan, true);
+    pos += 4;
+    view.setUint16(pos, numOfChan * 2, true);
+    pos += 2;
+    view.setUint16(pos, 16, true);
+    pos += 2;
+    writeUTFBytes(view, pos, "data");
+    pos += 4;
+    view.setUint32(pos, buffer.length * numOfChan * 2, true);
+    pos += 4;
+
+    for (let i = 0; i < buffer.numberOfChannels; i++)
+      channels.push(buffer.getChannelData(i));
+
+    let offset = 0;
+    while (offset < buffer.length) {
+      for (let i = 0; i < numOfChan; i++) {
+        let sample = Math.max(-1, Math.min(1, channels[i][offset]));
+        view.setInt16(
+          pos,
+          sample < 0 ? sample * 0x8000 : sample * 0x7fff,
+          true
+        );
+        pos += 2;
+      }
+      offset++;
+    }
+    return outBuffer;
+  }
+
+  function writeUTFBytes(view, offset, string) {
+    for (let i = 0; i < string.length; i++) {
+      view.setUint8(offset + i, string.charCodeAt(i));
+    }
+  }
+
+  // ---- Ondas visuales ----
+  let rafId;
+  function drawWaves(stream) {
     const ctx = voiceCanvas.getContext("2d");
     const W = voiceCanvas.width,
       H = voiceCanvas.height;
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const src = audioCtx.createMediaStreamSource(stream);
+    const analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    src.connect(analyser);
+    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
     function loop() {
       rafId = requestAnimationFrame(loop);
-      if (!analyser) return;
       analyser.getByteFrequencyData(dataArray);
       ctx.clearRect(0, 0, W, H);
       const bars = 40;
@@ -463,10 +396,4 @@ if (simularBtn) {
     }
     loop();
   }
-
-  voiceModeBtn?.addEventListener("click", startVoice);
-  voiceStopBtn?.addEventListener("click", stopVoice);
-  voiceOverlay?.addEventListener("click", (e) => {
-    if (e.target === voiceOverlay) stopVoice();
-  });
 })();
