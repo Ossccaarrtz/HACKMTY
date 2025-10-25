@@ -5,8 +5,10 @@ services:
       dockerfile: docker/backend.Dockerfile
     ports:
       - "5000:5000"
-    networks:
-      - fincortex_net
+    env_file:
+      - .env
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
 
   cfo-voice:
     build:

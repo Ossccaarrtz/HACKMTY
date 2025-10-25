@@ -1,5 +1,6 @@
-Flask
-prophet
-pandas
-plotly
-gunicorn
+Flask==3.0.3
+prophet>=1.1
+pandas>=2.2
+plotly>=5.24
+google-generativeai>=0.6.0
+gunicorn>=21.2
