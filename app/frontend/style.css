@@ -1,0 +1,52 @@
+body {
+  font-family: "Segoe UI", sans-serif;
+  background: #f6f6f9;
+  margin: 0;
+  color: #333;
+}
+
+header {
+  text-align: center;
+  padding: 1rem;
+  background: #2b2d42;
+  color: #fff;
+}
+
+.chat {
+  max-width: 600px;
+  margin: 3rem auto;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+}
+
+textarea {
+  width: 100%;
+  height: 120px;
+  padding: 0.8rem;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+button {
+  background: #4f46e5;
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  margin-top: 0.8rem;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #3730a3;
+}
+
+#response {
+  margin-top: 1.2rem;
+  padding: 1rem;
+  background: #eef2ff;
+  border-radius: 8px;
+  min-height: 40px;
+}

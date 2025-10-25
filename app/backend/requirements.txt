@@ -1,0 +1,6 @@
+Flask
+prophet
+pandas
+requests
+gunicorn
+
