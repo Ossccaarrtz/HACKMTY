@@ -1,0 +1,15 @@
+{
+  "type": "object",
+  "title": "Respuesta IA Financiera",
+  "properties": {
+    "text": {
+      "type": "string",
+      "description": "Respuesta generada por Gemini en texto natural (español)."
+    },
+    "audio_base64": {
+      "type": "string",
+      "description": "Audio MP3 codificado en Base64 generado por ElevenLabs."
+    }
+  },
+  "required": ["text"]
+}

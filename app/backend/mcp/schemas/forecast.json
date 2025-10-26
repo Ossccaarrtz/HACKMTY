@@ -1,0 +1,26 @@
+{
+  "type": "array",
+  "title": "Predicción de Serie Temporal",
+  "items": {
+    "type": "object",
+    "properties": {
+      "ds": {
+        "type": "string",
+        "description": "Fecha de la predicción (YYYY-MM-DD)."
+      },
+      "yhat": {
+        "type": "number",
+        "description": "Valor estimado de la serie."
+      },
+      "yhat_lower": {
+        "type": "number",
+        "description": "Límite inferior de confianza."
+      },
+      "yhat_upper": {
+        "type": "number",
+        "description": "Límite superior de confianza."
+      }
+    },
+    "required": ["ds", "yhat"]
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "type": "object",
+  "title": "KPIs Macroeconómicos",
+  "properties": {
+    "PIB": {
+      "type": "number",
+      "description": "Producto Interno Bruto real (millones de pesos de 2018)."
+    },
+    "tasa_referencia": {
+      "type": "number",
+      "description": "Tasa de referencia del Banco de México en porcentaje."
+    },
+    "tipo_cambio": {
+      "type": "number",
+      "description": "Tipo de cambio FIX MXN/USD."
+    },
+    "udis": {
+      "type": "number",
+      "description": "Valor actual de la UDI (Unidad de Inversión)."
+    }
+  },
+  "required": ["PIB", "tasa_referencia", "tipo_cambio"]
+}

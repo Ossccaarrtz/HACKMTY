@@ -1,0 +1,39 @@
+{
+  "name": "fincortex_backend",
+  "description": "APIs financieras y predictivas de FinCortex con integración Gemini + Prophet.",
+  "version": "1.0.0",
+  "schema_version": "v1",
+  "contact_email": "soporte@fincortex.ai",
+  "endpoints": {
+    "get_kpis": {
+      "method": "GET",
+      "path": "/kpis",
+      "description": "Obtiene los KPIs macroeconómicos recientes procesados por Prophet.",
+      "returns": { "$ref": "schemas/get_kpis.json" }
+    },
+    "forecast": {
+      "method": "GET",
+      "path": "/forecast/{serie}",
+      "description": "Devuelve una predicción de serie financiera (tipo_cambio_fix, tasa_referencia, etc.) generada por Prophet.",
+      "parameters": {
+        "serie": {
+          "type": "string",
+          "description": "Nombre de la serie (por ejemplo: 'tipo_cambio_fix' o 'tasa_referencia')."
+        }
+      },
+      "returns": { "$ref": "schemas/forecast.json" }
+    },
+    "ask": {
+      "method": "POST",
+      "path": "/ask",
+      "description": "Recibe una pregunta o audio y genera una respuesta usando Gemini y Prophet.",
+      "parameters": {
+        "question": {
+          "type": "string",
+          "description": "Pregunta en texto natural (por ejemplo: '¿Cuál será la tasa de referencia el próximo mes?')."
+        }
+      },
+      "returns": { "$ref": "schemas/ask.json" }
+    }
+  }
+}
