@@ -1,12 +1,14 @@
 Flask==3.0.3
+flask-cors>=4.0
 prophet>=1.1
 pandas>=2.2
 plotly>=5.24
 google-generativeai>=0.6.0
 gunicorn>=21.2
 
-# 🔊 nuevas dependencias para voz
+# 🔊 dependencias para voz (OPTIMIZADAS)
 requests>=2.32
 python-dotenv>=1.0
 SpeechRecognition>=3.10
 pydub>=0.25
+gTTS>=2.5.0
