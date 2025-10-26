@@ -1,4 +1,4 @@
-# app/backend/main.py - VERSION CORREGIDA CON MODELO ESTABLE
+# app/backend/main.py - VERSION CON TWILIO INTELIGENTE
 from __future__ import annotations
 import os
 import base64
@@ -54,6 +54,10 @@ genai.configure(api_key=GEMINI_KEY)
 
 # Intentar con diferentes modelos hasta encontrar uno que funcione
 MODELS_TO_TRY = [
+    "gemini-1.5-flash",
+    "gemini-1.5-pro", 
+    "gemini-pro",
+    "gemini-1.5-flash-latest",
     "gemini-2.0-flash-exp",
 ]
 
@@ -90,21 +94,29 @@ if MODEL is None:
 TW_SID = os.getenv("TWILIO_ACCOUNT_SID")
 TW_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
 TW_FROM = os.getenv("TWILIO_FROM")
-TW_TO = os.getenv("ALERT_TO")  # Cambiado de TWILIO_TO a ALERT_TO según tu .env
+TW_TO = os.getenv("ALERT_TO")
 tw_client = None
-if TW_SID and TW_TOKEN:
+
+if TW_SID and TW_TOKEN and TW_FROM and TW_TO:
     try:
         tw_client = Client(TW_SID, TW_TOKEN)
-        print("[Twilio] ✅ Cliente configurado correctamente.")
+        print(f"[Twilio] ✅ Cliente configurado correctamente.")
+        print(f"[Twilio] 📱 Enviará alertas a: {TW_TO}")
     except Exception as e:
         print(f"[Twilio] ⚠️ No se pudo inicializar cliente: {e}")
+else:
+    print("[Twilio] ⚠️ Configuración incompleta. Alertas desactivadas.")
+    print(f"   SID: {'✅' if TW_SID else '❌'}")
+    print(f"   TOKEN: {'✅' if TW_TOKEN else '❌'}")
+    print(f"   FROM: {'✅' if TW_FROM else '❌'}")
+    print(f"   TO: {'✅' if TW_TO else '❌'}")
 # ==========================================================
 
 # Cache simple
 response_cache: Dict[str, str] = {}
 
 # ==============================
-# 🎤 Speech-to-Text MEJORADO (100% compatible con .webm y Windows)
+# 🎤 Speech-to-Text MEJORADO
 # ==============================
 def speech_to_text(file_storage):
     """
@@ -195,7 +207,7 @@ def speech_to_text(file_storage):
         return None
 
 # ==============================
-# 🧠 Gemini con Análisis Financiero + Caché inteligente
+# 🧠 Gemini con Análisis Financiero
 # ==============================
 def ask_gemini_fast(question: str) -> str:
     """Genera respuesta con análisis financiero integrado y caché inteligente."""
@@ -272,7 +284,6 @@ Pregunta: {question}
         
         resp = MODEL.generate_content(context, generation_config=generation_config)
         
-        # Verificar que la respuesta tenga contenido
         if not resp or not resp.text:
             raise Exception("Respuesta vacía del modelo")
             
@@ -290,9 +301,7 @@ Pregunta: {question}
         import traceback
         print(f"[Gemini] ❌ Error al generar respuesta: {e}")
         traceback.print_exc()
-        
-        # Respuesta de fallback
-        return "Disculpa, tuve un problema al procesar tu pregunta. Por favor, intenta de nuevo o reformula tu pregunta."
+        return "Disculpa, tuve un problema al procesar tu pregunta. Por favor, intenta de nuevo."
 
 # ==============================
 # 🔊 Text-to-Speech
@@ -312,34 +321,164 @@ def synthesize_voice_fast(text: str) -> Optional[str]:
         print(f"[TTS] ❌ Error: {e}")
         return None
 
-def send_twilio_alert(answer: str):
-    """Envía una alerta cada vez que el chatbot responde."""
-    import traceback
-    if not tw_client:
-        print("[Twilio DEBUG] ⚠️ Cliente Twilio no inicializado.")
-        return
-    try:
-        tipo = random.choice(["Acción", "Criptomoneda", "ETF", "Startup"])
-        variacion = random.uniform(2, 8)
-        recomendacion = random.choice(["Compra recomendada ✅", "Venta sugerida ⚠️", "Mantener posición 📊"])
-
-        if "Compra" in recomendacion:
-            motivo = "Se detectó tendencia alcista y señales técnicas favorables."
-        elif "Venta" in recomendacion:
-            motivo = "Se observan señales de sobrecompra y posible corrección."
+# ==============================
+# 📱 TWILIO - RECOMENDACIONES INTELIGENTES
+# ==============================
+def generate_financial_recommendation(question: str, answer: str) -> Dict[str, str]:
+    """
+    Genera una recomendación financiera inteligente basada en la pregunta y respuesta del bot.
+    """
+    question_lower = question.lower()
+    answer_lower = answer.lower()
+    
+    # Detectar el tipo de consulta
+    recommendation_type = None
+    recommendation = ""
+    reason = ""
+    
+    # 1. TIPO DE CAMBIO / DÓLAR
+    if any(word in question_lower for word in ["dólar", "tipo de cambio", "usd", "cambio"]):
+        if any(word in answer_lower for word in ["subir", "aumentar", "alza", "sube"]):
+            recommendation_type = "💱 TIPO DE CAMBIO"
+            recommendation = "COMPRAR DÓLARES 💵"
+            reason = "El tipo de cambio podría subir. Es buen momento para comprar dólares si tienes pagos en USD próximamente."
         else:
-            motivo = "El mercado se mantiene estable sin cambios relevantes."
+            recommendation_type = "💱 TIPO DE CAMBIO"
+            recommendation = "MANTENER PESOS 🇲🇽"
+            reason = "El tipo de cambio está estable. No es urgente comprar dólares en este momento."
+    
+    # 2. INFLACIÓN
+    elif any(word in question_lower for word in ["inflación", "inflacion", "precios"]):
+        if any(word in answer_lower for word in ["subir", "alta", "aumentar", "incremento"]):
+            recommendation_type = "📈 INFLACIÓN"
+            recommendation = "AJUSTAR PRECIOS +3-5% 📊"
+            reason = "La inflación está alta. Ajusta tus precios para mantener márgenes de utilidad."
+        else:
+            recommendation_type = "📈 INFLACIÓN"
+            recommendation = "MANTENER PRECIOS 💰"
+            reason = "La inflación está controlada. No es necesario ajustar precios por ahora."
+    
+    # 3. EMPRESA / NEGOCIO
+    elif any(word in question_lower for word in ["empresa", "negocio", "estado", "cómo va", "como va"]):
+        if any(word in answer_lower for word in ["bien", "bueno", "positivo", "crecimiento"]):
+            recommendation_type = "🏢 TU EMPRESA"
+            recommendation = "INVERTIR EN CRECIMIENTO 🚀"
+            reason = "Tu empresa está en buen estado. Es momento de invertir en marketing, tecnología o expansión."
+        elif any(word in answer_lower for word in ["crítico", "problema", "negativo", "bajo"]):
+            recommendation_type = "🏢 TU EMPRESA"
+            recommendation = "REDUCIR GASTOS URGENTE ⚠️"
+            reason = "Tu empresa necesita atención. Prioriza reducción de costos y mejora de márgenes."
+        else:
+            recommendation_type = "🏢 TU EMPRESA"
+            recommendation = "MANTENER ESTABILIDAD 📊"
+            reason = "Tu empresa está estable. Monitorea indicadores y mantén las operaciones actuales."
+    
+    # 4. INVERSIÓN
+    elif any(word in question_lower for word in ["invertir", "inversión", "inversion", "donde poner"]):
+        recommendation_type = "💼 INVERSIÓN"
+        recommendation = "DIVERSIFICAR: 60% CETES + 40% ACCIONES 📈"
+        reason = "Estrategia equilibrada: CETES para estabilidad (11% anual) y acciones para crecimiento."
+    
+    # 5. CRÉDITO / PRÉSTAMO
+    elif any(word in question_lower for word in ["crédito", "credito", "préstamo", "prestamo", "pedir prestado"]):
+        if any(word in answer_lower for word in ["bien", "puedes", "favorable", "recomiendo"]):
+            recommendation_type = "💳 CRÉDITO"
+            recommendation = "SOLICITAR CRÉDITO ✅"
+            reason = "Tu flujo de caja permite asumir deuda. Busca tasas menores al 15% anual."
+        else:
+            recommendation_type = "💳 CRÉDITO"
+            recommendation = "EVITAR CRÉDITO ⚠️"
+            reason = "Tu situación financiera no permite deuda adicional. Enfócate en mejorar flujo de caja primero."
+    
+    # 6. VENTAS / INGRESOS
+    elif any(word in question_lower for word in ["ventas", "ingresos", "vender"]):
+        recommendation_type = "💰 VENTAS"
+        recommendation = "AUMENTAR MARKETING +20% 📣"
+        reason = "Invierte más en marketing digital y promociones para incrementar ventas."
+    
+    # 7. GASTOS
+    elif any(word in question_lower for word in ["gastos", "reducir", "ahorrar", "costos"]):
+        recommendation_type = "💸 GASTOS"
+        recommendation = "OPTIMIZAR GASTOS -10% 📉"
+        reason = "Renegocia contratos con proveedores y elimina servicios no esenciales."
+    
+    # 8. FLUJO DE CAJA
+    elif any(word in question_lower for word in ["flujo", "caja", "liquidez", "efectivo"]):
+        if any(word in answer_lower for word in ["bien", "positivo", "saludable"]):
+            recommendation_type = "💵 FLUJO DE CAJA"
+            recommendation = "INVERTIR EXCEDENTES 📈"
+            reason = "Tienes buen flujo. Invierte excedentes en CETES o instrumentos de bajo riesgo."
+        else:
+            recommendation_type = "💵 FLUJO DE CAJA"
+            recommendation = "ACELERAR COBRANZA ⏰"
+            reason = "Flujo ajustado. Ofrece descuentos por pronto pago y reduce plazos de cobro."
+    
+    # DEFAULT: Recomendación general
+    else:
+        recommendations = [
+            {
+                "type": "💼 INVERSIÓN",
+                "rec": "DIVERSIFICAR CARTERA 📊",
+                "reason": "Balancea entre instrumentos seguros (CETES) y de mayor rendimiento (acciones, ETFs)."
+            },
+            {
+                "type": "📈 CRECIMIENTO",
+                "rec": "REINVERTIR UTILIDADES 🚀",
+                "reason": "Destina el 30% de utilidades a mejorar procesos, tecnología o expansión."
+            },
+            {
+                "type": "⚠️ RIESGO",
+                "rec": "CREAR FONDO DE EMERGENCIA 💰",
+                "reason": "Mantén 3-6 meses de gastos operativos como reserva para contingencias."
+            },
+            {
+                "type": "🎯 ESTRATEGIA",
+                "rec": "REVISAR PRECIOS TRIMESTRALMENTE 📊",
+                "reason": "Ajusta precios cada 3 meses considerando inflación y costos de operación."
+            }
+        ]
+        
+        choice = random.choice(recommendations)
+        recommendation_type = choice["type"]
+        recommendation = choice["rec"]
+        reason = choice["reason"]
+    
+    return {
+        "type": recommendation_type,
+        "recommendation": recommendation,
+        "reason": reason
+    }
 
-        msg_body = (
-            f"[ALERTA FINCORTEX] {tipo} cambió {variacion:.2f}% — {recomendacion}. "
-            f"Motivo: {motivo}"
-        )
+def send_twilio_smart_alert(question: str, answer: str):
+    """
+    Envía una alerta inteligente por Twilio con recomendación financiera basada en la conversación.
+    """
+    import traceback
+    
+    if not tw_client:
+        print("[Twilio] ⚠️ Cliente no inicializado. No se enviará alerta.")
+        return
+    
+    try:
+        # Generar recomendación inteligente
+        rec = generate_financial_recommendation(question, answer)
+        
+        # Construir mensaje
+        msg_body = f"""🏦 FINCORTEX ALERT
 
-        # Truncar mensaje si es muy largo (cuentas trial tienen límite)
-        if len(msg_body) > 150:
-            msg_body = msg_body[:147] + "..."
+{rec['type']}
+▶ {rec['recommendation']}
 
-        print(f"[Twilio DEBUG] Enviando mensaje ({len(msg_body)} chars): {msg_body}")
+💡 Motivo: {rec['reason']}
+
+Pregunta: {question[:50]}..."""
+
+        # Truncar si es muy largo (límite para cuentas trial)
+        if len(msg_body) > 155:
+            msg_body = msg_body[:152] + "..."
+
+        print(f"[Twilio] 📱 Enviando alerta...")
+        print(f"[Twilio] Mensaje ({len(msg_body)} chars):\n{msg_body}\n")
 
         msg = tw_client.messages.create(
             body=msg_body,
@@ -347,14 +486,16 @@ def send_twilio_alert(answer: str):
             to=TW_TO.strip()
         )
 
-        print(f"[Twilio DEBUG] SID={msg.sid}, Status={msg.status}")
+        print(f"[Twilio] ✅ Mensaje enviado!")
+        print(f"[Twilio] SID: {msg.sid}")
+        print(f"[Twilio] Status: {msg.status}")
+        
         if msg.error_code:
-            print(f"[Twilio] ⚠️ Error: {msg.error_message}")
-        else:
-            print("[Twilio] ✅ Envío exitoso.")
+            print(f"[Twilio] ⚠️ Error Code: {msg.error_code}")
+            print(f"[Twilio] Error: {msg.error_message}")
 
     except Exception as e:
-        print(f"[Twilio] ❌ Excepción: {e}")
+        print(f"[Twilio] ❌ Error al enviar: {e}")
         traceback.print_exc()
 
 
@@ -366,14 +507,15 @@ def home() -> Any:
     return jsonify({
         "status": "ok",
         "message": "FinCortex IA con Asesor Financiero 🚀",
-        "version": "3.3-stable",
+        "version": "3.4-twilio-smart",
         "model": MODEL_NAME,
-        "features": ["chat", "voice", "financial_analysis", "recommendations"]
+        "twilio": "✅ Activo" if tw_client else "❌ Inactivo",
+        "features": ["chat", "voice", "financial_analysis", "smart_alerts"]
     })
 
 @app.route("/ask", methods=["POST"])
 def ask() -> Any:
-    """Endpoint principal con análisis financiero integrado."""
+    """Endpoint principal con análisis financiero y alertas Twilio inteligentes."""
     start_time = time.time()
     question: Optional[str] = None
 
@@ -400,9 +542,8 @@ def ask() -> Any:
     audio_b64 = synthesize_voice_fast(answer)
     elapsed = time.time() - start_time
 
-    # === ENVÍO AUTOMÁTICO DE ALERTA TWILIO (comentado por defecto) ===
-    # send_twilio_alert(answer)
-    # =================================================================
+    # ✅ ENVIAR ALERTA INTELIGENTE POR TWILIO
+    send_twilio_smart_alert(question, answer)
 
     print(f"[RESPONSE] ✅ Completado en {elapsed:.2f}s\n{'='*60}\n")
 
@@ -446,10 +587,13 @@ def forecast(serie: str) -> Any:
 # ==============================
 if __name__ == "__main__":
     print("\n" + "="*60)
-    print("🚀 FINCORTEX VOICE - CON ASESOR FINANCIERO v3.3")
-    print("⚡ MODELO ESTABLE | 🎤 Audio Full | 🧠 Respuestas IA")
+    print("🚀 FINCORTEX VOICE v3.4 - TWILIO SMART ALERTS")
+    print("⚡ MODELO ESTABLE | 🎤 Audio Full | 📱 Alertas Inteligentes")
     print("="*60)
     print(f"   - Modelo Gemini: {MODEL_NAME}")
     print(f"   - Financial Advisor: {'✅ ACTIVO' if FINANCIAL_ENABLED else '❌ DESACTIVADO'}")
+    print(f"   - Twilio Alerts: {'✅ ACTIVO' if tw_client else '❌ DESACTIVADO'}")
+    if tw_client:
+        print(f"   - Enviará SMS a: {TW_TO}")
     print("="*60 + "\n")
     app.run(debug=False, host="0.0.0.0", port=8000, threaded=True)
