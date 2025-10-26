@@ -1,7 +1,8 @@
-# app/main.py - VERSION CON ASESOR FINANCIERO INTEGRADO
+# app/main.py - VERSION CON ASESOR FINANCIERO INTEGRADO Y DATOS REALES DE E041
 import os
 import base64
 import tempfile
+import pandas as pd
 from io import BytesIO
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
@@ -10,6 +11,7 @@ import speech_recognition as sr
 import google.generativeai as genai
 from gtts import gTTS
 import io
+import time
 
 # === módulos internos ===
 from modules.prophet_engine import get_kpis, predict_serie
@@ -31,264 +33,150 @@ financial_advisor = get_advisor()
 response_cache = {}
 
 # ==============================
+# 📊 CARGA DE DATOS REALES DE EMPRESA
+# ==============================
+EMPRESA_ID = "E041"
+DATA_PATH = os.path.join("data", "processed", "finanzas_empresa_limpio.csv")
+
+empresa_data = None
+if os.path.exists(DATA_PATH):
+    df = pd.read_csv(DATA_PATH)
+    if "empresa" in df.columns:
+        empresa_data = df[df["empresa"] == EMPRESA_ID]
+        print(f"[DATA] ✅ Empresa {EMPRESA_ID} cargada ({len(empresa_data)} registros)")
+    else:
+        print("[DATA] ⚠️ No se encontró columna 'empresa' en el CSV.")
+else:
+    print(f"[DATA] ⚠️ No se encontró archivo en {DATA_PATH}")
+
+# ==============================
 # 🎤 Speech-to-Text
 # ==============================
 def speech_to_text(file_storage):
     """Convierte audio a texto"""
-    try:
-        from pydub import AudioSegment
-    except ImportError:
-        AudioSegment = None
-    
     r = sr.Recognizer()
-    r.energy_threshold = 300
-    r.dynamic_energy_threshold = True
-    
     try:
         file_storage.seek(0)
-        audio_data = file_storage.read()
-        filename = getattr(file_storage, 'filename', 'audio.webm')
-        
-        print(f"[STT] 📝 Procesando: {filename} ({len(audio_data)} bytes)")
-        
-        if filename.endswith('.wav') or not AudioSegment:
-            file_storage.seek(0)
-            with sr.AudioFile(file_storage) as source:
-                r.adjust_for_ambient_noise(source, duration=0.3)
-                audio_rec = r.record(source)
-            text = r.recognize_google(audio_rec, language="es-MX")
-            print(f"[STT] ✅ Transcrito: {text}")
-            return text
-        
-        with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_wav:
-            temp_wav_path = temp_wav.name
-        with tempfile.NamedTemporaryFile(delete=False) as temp_input:
-            temp_input.write(audio_data)
-            temp_input_path = temp_input.name
-        
-        try:
-            audio = AudioSegment.from_file(temp_input_path)
-            audio = audio.set_channels(1).set_frame_rate(16000)
-            audio.export(temp_wav_path, format='wav')
-            
-            with sr.AudioFile(temp_wav_path) as source:
-                r.adjust_for_ambient_noise(source, duration=0.3)
-                audio_rec = r.record(source)
-            
-            text = r.recognize_google(audio_rec, language="es-MX")
-            print(f"[STT] ✅ Transcrito: {text}")
-            return text
-        finally:
-            try:
-                os.unlink(temp_input_path)
-                os.unlink(temp_wav_path)
-            except:
-                pass
-    except sr.UnknownValueError:
-        print("[STT] ⚠️ Audio no entendible")
-        return None
+        with sr.AudioFile(file_storage) as source:
+            r.adjust_for_ambient_noise(source, duration=0.3)
+            audio = r.record(source)
+        text = r.recognize_google(audio, language="es-MX")
+        print(f"[STT] ✅ Transcrito: {text}")
+        return text
     except Exception as e:
         print(f"[STT] ❌ Error: {e}")
         return None
 
 # ==============================
-# 🧠 Gemini con Análisis Financiero
+# 🧠 Gemini con Análisis Financiero Real
 # ==============================
 def ask_gemini_fast(question: str) -> str:
-    """Genera respuesta con análisis financiero integrado"""
-    
+    """Genera respuesta usando datos reales de la empresa E041"""
     cache_key = question.lower().strip()
     if cache_key in response_cache:
         print("[Gemini] 📦 Respuesta desde cache")
         return response_cache[cache_key]
-    
+
+    # Obtener KPIs macro
     try:
         kpis = get_kpis()
     except:
         kpis = {}
-    
-    forecast_hint = ""
-    question_lower = question.lower()
-    
-    # Prophet predictions
-    if "tipo de cambio" in question_lower or "dólar" in question_lower:
-        try:
-            preds = predict_serie("tipo_cambio_fix")
-            if preds:
-                last = preds[-1]
-                forecast_hint = f"Tipo de cambio estimado: {last['yhat']:.2f} MXN/USD para {last['ds']}."
-        except:
-            pass
-    elif "tasa" in question_lower or "interés" in question_lower:
-        try:
-            preds = predict_serie("tasa_referencia")
-            if preds:
-                last = preds[-1]
-                forecast_hint = f"Tasa de referencia estimada: {last['yhat']:.2f}% para {last['ds']}."
-        except:
-            pass
-    
-    # 🆕 ANÁLISIS FINANCIERO
-    financial_context = ""
-    
-    # Análisis empresarial
-    if any(word in question_lower for word in ['empresa', 'negocio', 'ventas', 'utilidad', 'margen', 'estado', 'compañía']):
-        try:
-            empresa_analysis = financial_advisor.analyze_empresa()
-            if empresa_analysis:
-                financial_context = f"""
-📊 ANÁLISIS EMPRESARIAL:
-- Estado: {empresa_analysis['estado']} (Score: {empresa_analysis['score']}/100)
-- Margen de utilidad: {empresa_analysis['margen_utilidad']:.1f}%
-- Crecimiento trimestral: {empresa_analysis['crecimiento_trimestral']:.1f}%
-- Utilidad anual: ${empresa_analysis['utilidad_neta']:,.0f} MXN
-- {empresa_analysis['descripcion']}
 
+    # === Datos reales de empresa E041 ===
+    if empresa_data is not None and not empresa_data.empty:
+        resumen = empresa_data.tail(12)  # Últimos 12 registros (último año)
+        ingresos = resumen["ingresos"].sum()
+        gastos = resumen["gastos"].sum()
+        utilidad = ingresos - gastos
+        margen = (utilidad / ingresos) * 100 if ingresos > 0 else 0
+        crecimiento = (resumen["ingresos"].iloc[-1] - resumen["ingresos"].iloc[0]) / resumen["ingresos"].iloc[0] * 100
+        promedio_mensual = ingresos / 12
+
+        empresa_context = f"""
+📊 DATOS REALES DE EMPRESA {EMPRESA_ID}
+- Ingresos últimos 12 meses: ${ingresos:,.0f} MXN
+- Gastos últimos 12 meses: ${gastos:,.0f} MXN
+- Utilidad neta: ${utilidad:,.0f} MXN
+- Margen de utilidad: {margen:.1f}%
+- Crecimiento anual estimado: {crecimiento:.2f}%
+- Ingreso mensual promedio: ${promedio_mensual:,.0f} MXN
 """
-        except Exception as e:
-            print(f"[FinAdvisor] ❌ Error empresarial: {e}")
-    
-    # Análisis personal
-    if any(word in question_lower for word in ['personal', 'ahorro', 'gastos', 'ingresos', 'finanzas personales']):
-        try:
-            personal_analysis = financial_advisor.analyze_personal()
-            if personal_analysis:
-                financial_context += f"""
-💰 ANÁLISIS PERSONAL:
-- Estado: {personal_analysis['estado']} (Score: {personal_analysis['score']}/100)
-- Tasa de ahorro: {personal_analysis['tasa_ahorro']:.1f}%
-- Ahorro mensual: ${personal_analysis['ahorro_mensual']:,.0f} MXN
-- Ingresos mensuales: ${personal_analysis['ingresos_mensuales']:,.0f} MXN
-- {personal_analysis['descripcion']}
+    else:
+        empresa_context = f"No se encontraron datos para la empresa {EMPRESA_ID}."
 
-"""
-        except Exception as e:
-            print(f"[FinAdvisor] ❌ Error personal: {e}")
-    
-    # Recomendaciones
-    if any(word in question_lower for word in ['recomendacion', 'recomiend', 'suger', 'consejo', 'invertir', 'préstamo', 'crédito']):
-        try:
-            if any(word in question_lower for word in ['empresa', 'negocio']):
-                empresa_analysis = financial_advisor.analyze_empresa()
-                recs = financial_advisor.get_recomendaciones_empresa(empresa_analysis)
-                if recs:
-                    financial_context += "\n💡 RECOMENDACIONES TOP:\n"
-                    for i, rec in enumerate(recs[:2], 1):
-                        financial_context += f"{i}. **{rec['titulo']}**: {rec['descripcion']}\n"
-            
-            if 'personal' in question_lower or not ('empresa' in question_lower or 'negocio' in question_lower):
-                personal_analysis = financial_advisor.analyze_personal()
-                recs = financial_advisor.get_recomendaciones_personal(personal_analysis)
-                if recs:
-                    financial_context += "\n💡 RECOMENDACIONES TOP:\n"
-                    for i, rec in enumerate(recs[:2], 1):
-                        financial_context += f"{i}. **{rec['titulo']}**: {rec['descripcion']}\n"
-        except Exception as e:
-            print(f"[FinAdvisor] ❌ Error recomendaciones: {e}")
-    
-    # Prompt optimizado
-    context = f"""Eres un CFO virtual experto en finanzas mexicanas. Responde de forma CONCISA y DIRECTA.
+    # === Prompt más estructurado ===
+    context = f"""
+Eres un CFO virtual experto en análisis financiero mexicano. 
+Tienes acceso a los datos reales de la empresa {EMPRESA_ID} y debes basar tus respuestas en ellos.
 
-{financial_context}
+{empresa_context}
 
-Datos macro: {kpis}
-{forecast_hint}
+Indicadores macroeconómicos actuales: {kpis}
 
 Reglas:
-- Respuestas cortas (máximo 4 oraciones)
-- Si hay análisis financiero, úsalo prominentemente
-- Si hay recomendaciones, menciónalas
-- Tono profesional pero amigable
-- En español mexicano
-- Da cifras específicas cuando las tengas
-
-Pregunta: {question}"""
+- Usa solo los datos reales de la empresa, no inventes cifras.
+- Si el usuario pregunta sobre rentabilidad, márgenes o crecimiento, responde con esos valores reales.
+- Si pide una recomendación, da una conclusión financiera con base en la utilidad, margen y crecimiento.
+- Mantén un tono analítico, profesional y claro.
+- Escribe en español mexicano.
+- No repitas la pregunta.
+Pregunta: {question}
+"""
 
     try:
-        print("[Gemini] 🧠 Generando respuesta...")
-        
-        generation_config = {
-            "temperature": 0.7,
-            "max_output_tokens": 250,
-        }
-        
-        resp = MODEL.generate_content(context, generation_config=generation_config)
+        print("[Gemini] 🧠 Generando respuesta con datos reales...")
+        resp = MODEL.generate_content(
+            context,
+            generation_config={"temperature": 0.3, "max_output_tokens": 300},
+        )
         answer = resp.text.strip()
-        
         response_cache[cache_key] = answer
-        if len(response_cache) > 100:
-            response_cache.pop(next(iter(response_cache)))
-        
-        print(f"[Gemini] ✅ Respuesta: {answer[:50]}...")
+        print(f"[Gemini] ✅ Respuesta: {answer[:80]}...")
         return answer
-        
     except Exception as e:
         print(f"[Gemini] ❌ Error: {e}")
-        return "Lo siento, no pude generar una respuesta en este momento."
+        return "No pude generar una respuesta en este momento."
 
 # ==============================
 # 🔊 Text-to-Speech
 # ==============================
 def synthesize_voice_fast(text: str) -> str:
-    """Convierte texto a voz con gTTS"""
+    """Convierte texto a voz"""
     try:
-        print("[TTS] 🔊 Sintetizando con gTTS...")
         tts = gTTS(text=text, lang='es', slow=False, tld='com.mx')
         audio_fp = io.BytesIO()
         tts.write_to_fp(audio_fp)
         audio_fp.seek(0)
-        audio_b64 = base64.b64encode(audio_fp.read()).decode('utf-8')
-        print(f"[TTS] ✅ Audio generado")
-        return audio_b64
+        return base64.b64encode(audio_fp.read()).decode('utf-8')
     except Exception as e:
         print(f"[TTS] ❌ Error: {e}")
         return None
 
 # ==============================
-# 🌐 ENDPOINTS PRINCIPALES
+# 🌐 ENDPOINTS
 # ==============================
 @app.route("/")
 def home():
     return jsonify({
         "status": "ok",
-        "message": "FinCortex IA con Asesor Financiero 🚀",
-        "version": "3.0-advisor",
-        "features": ["chat", "voice", "financial_analysis", "recommendations"]
+        "message": "FinCortex IA con Datos Reales E041 🚀",
+        "version": "3.1",
+        "empresa": EMPRESA_ID
     })
 
 @app.route("/ask", methods=["POST"])
 def ask():
-    """Endpoint principal con análisis financiero integrado"""
-    import time
+    """Pregunta a la IA basada en datos reales"""
     start_time = time.time()
-    
-    question = None
-    print(f"\n{'='*60}")
-    print(f"[REQUEST] Nueva petición - {time.strftime('%H:%M:%S')}")
-    
-    if request.content_type and request.content_type.startswith("application/json"):
-        data = request.get_json()
-        question = data.get("question", "").strip()
-        print(f"[TEXT] 💬 Pregunta: {question}")
-        
-    elif "audio" in request.files:
-        print("[AUDIO] 🎤 Procesando audio...")
-        file = request.files["audio"]
-        file_bytes = BytesIO(file.read())
-        file_bytes.filename = file.filename
-        question = speech_to_text(file_bytes)
-        if question:
-            print(f"[AUDIO] ✅ Transcrito: {question}")
-
+    data = request.get_json()
+    question = data.get("question", "").strip()
     if not question:
         return jsonify({"error": "No se recibió pregunta válida"}), 400
 
     answer = ask_gemini_fast(question)
     audio_b64 = synthesize_voice_fast(answer)
-    
     elapsed = time.time() - start_time
-    print(f"[RESPONSE] ✅ Completado en {elapsed:.2f}s")
-    print(f"{'='*60}\n")
 
     return jsonify({
         "text": answer,
@@ -297,81 +185,11 @@ def ask():
     })
 
 # ==============================
-# 📊 ENDPOINTS DE ANÁLISIS FINANCIERO
-# ==============================
-
-@app.route("/api/finanzas/estado", methods=["GET"])
-def get_estado():
-    """Obtener estado financiero resumido"""
-    try:
-        empresa = financial_advisor.analyze_empresa()
-        personal = financial_advisor.analyze_personal()
-        
-        return jsonify({
-            'success': True,
-            'empresa': {
-                'estado': empresa['estado'],
-                'score': empresa['score'],
-                'margen': empresa['margen_utilidad'],
-                'descripcion': empresa['descripcion']
-            },
-            'personal': {
-                'estado': personal['estado'],
-                'score': personal['score'],
-                'tasa_ahorro': personal['tasa_ahorro'],
-                'descripcion': personal['descripcion']
-            }
-        })
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route("/api/finanzas/analisis", methods=["GET"])
-def get_analisis():
-    """Análisis financiero completo con recomendaciones"""
-    try:
-        resultado = financial_advisor.get_analisis_completo()
-        return jsonify({'success': True, 'data': resultado})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route("/api/finanzas/recomendaciones", methods=["GET"])
-def get_recomendaciones():
-    """Solo recomendaciones"""
-    tipo = request.args.get('tipo', 'todas')  # empresa, personal, todas
-    
-    try:
-        recomendaciones = {
-            'empresa': [],
-            'personal': []
-        }
-        
-        if tipo in ['empresa', 'todas']:
-            empresa = financial_advisor.analyze_empresa()
-            recomendaciones['empresa'] = financial_advisor.get_recomendaciones_empresa(empresa)
-        
-        if tipo in ['personal', 'todas']:
-            personal = financial_advisor.analyze_personal()
-            recomendaciones['personal'] = financial_advisor.get_recomendaciones_personal(personal)
-        
-        return jsonify({'success': True, 'recomendaciones': recomendaciones})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route("/kpis")
-def kpis():
-    return jsonify(get_kpis())
-
-@app.route("/forecast/<serie>")
-def forecast(serie):
-    preds = predict_serie(serie)
-    return jsonify(preds)
-
-# ==============================
 # 🚀 Run
 # ==============================
 if __name__ == "__main__":
     print("\n" + "="*60)
-    print("🚀 FINCORTEX VOICE - CON ASESOR FINANCIERO v3.0")
-    print("⚡ Velocidad optimizada | 🎤 Voz rápida | 📊 Análisis inteligente")
+    print("🚀 FINCORTEX VOICE - DATOS REALES E041")
+    print("📊 Usa información real de finanzas_empresa_limpio.csv")
     print("="*60 + "\n")
     app.run(debug=False, host="0.0.0.0", port=8000, threaded=True)
