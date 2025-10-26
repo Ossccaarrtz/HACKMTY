@@ -100,8 +100,8 @@ GET  /forecast/<serie>          # Predicciones Prophet
 ### 1️⃣ Clonar y configurar
 
 ```bash
-git clone https://github.com/tu-usuario/fincortex.git
-cd fincortex
+git clone https://github.com/Ossccaarrtz/HACKMTY.git
+cd HACKMTY
 python -m venv venv
 venv\Scripts\activate  # Windows
 cd app/backend
@@ -539,3 +539,4 @@ Ayuda a otros emprendedores y CFOs a tomar mejores decisiones financieras 🚀
 ---
 
 **v4.0** | Última actualización: Octubre 2024
+
