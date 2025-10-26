@@ -1,0 +1,33 @@
+{
+  "AWSEBDockerrunVersion": 2,
+  "containerDefinitions": [
+    {
+      "name": "fincortex-frontend",
+      "image": "tucuenta/fincortex-frontend-ui:latest",
+      "essential": true,
+      "memory": 256,
+      "portMappings": [{ "containerPort": 80, "hostPort": 80 }]
+    },
+    {
+      "name": "fincortex-backend-ai",
+      "image": "tucuenta/fincortex-backend-ai:latest",
+      "essential": true,
+      "memory": 512,
+      "portMappings": [{ "containerPort": 5000, "hostPort": 5000 }]
+    },
+    {
+      "name": "fincortex-cfo-voice",
+      "image": "tucuenta/fincortex-cfo-voice:latest",
+      "essential": true,
+      "memory": 256,
+      "portMappings": [{ "containerPort": 8000, "hostPort": 8000 }]
+    },
+    {
+      "name": "fincortex-data-integration",
+      "image": "tucuenta/fincortex-data-integration:latest",
+      "essential": true,
+      "memory": 512,
+      "portMappings": [{ "containerPort": 5050, "hostPort": 5050 }]
+    }
+  ]
+}
