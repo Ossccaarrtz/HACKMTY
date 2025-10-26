@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Banorte FinCortex Voice - CFO Virtual</title>
+    <title>Banorte Cortex</title>
     <link rel="stylesheet" href="styles.css" />
     <link rel="icon" type="image/x-icon" href="Media/icon.ico" />
     <link rel="icon" type="image/png" href="Media/icon.png" />
@@ -19,14 +19,14 @@
             <img src="Media/Logo.png" alt="Logo Banorte" class="logo-img" />
           </a>
           <span class="logo-divider">|</span>
-          <span class="logo-subtitle">FINCORTEX VOICE</span>
+          <span class="logo-subtitle">CORTEX</span>
         </div>
 
         <!-- Info (versión desktop) -->
         <div class="header-info">
           <span class="current-date" id="currentDate"></span>
           <div class="user-profile">
-            <span class="user-name">MI EMPRESA S.A.</span>
+            <span class="user-name">Empresa S.A.</span>
           </div>
         </div>
 
@@ -45,7 +45,7 @@
     <!-- Panel lateral (solo móvil) -->
     <aside id="mobileMenu" class="mobile-menu" aria-hidden="true">
       <div class="mobile-menu__header">
-        <span class="mobile-menu__title">FINCORTEX VOICE</span>
+        <span class="mobile-menu__title">CORTEX</span>
         <button
           class="hamburger is-active"
           id="closeMenuBtn"
@@ -66,41 +66,48 @@
 
     <div id="menuOverlay" class="menu-overlay" hidden></div>
 
-    <!-- Hero Carousel Section -->
+    <!-- =================================================== -->
+    <!-- H E R O  S E C T I O N  C O N  I M Á G E N E S  Y  T E X T O  A  L A  I Z Q U I E R D A -->
+    <!-- =================================================== -->
     <section class="hero">
       <div class="hero-carousel">
-        <div class="carousel-track" id="carouselTrack">
-          <div class="carousel-slide active">
-            <div class="hero-content">
-              <h1 class="hero-title">INTELIGENCIA FINANCIERA AVANZADA</h1>
-              <p class="hero-subtitle">
-                CFO VIRTUAL IMPULSADO POR IA PARA DECISIONES ESTRATÉGICAS EN
-                TIEMPO REAL
-              </p>
-            </div>
-          </div>
-          <div class="carousel-slide">
-            <div class="hero-content">
-              <h1 class="hero-title">PREDICCIONES PRECISAS</h1>
-              <p class="hero-subtitle">
-                ANÁLISIS PREDICTIVO CON PROPHET PARA TIPO DE CAMBIO, INFLACIÓN E
-                INGRESOS
-              </p>
-            </div>
-          </div>
-          <div class="carousel-slide">
-            <div class="hero-content">
-              <h1 class="hero-title">SIMULACIÓN DE ESCENARIOS</h1>
-              <p class="hero-subtitle">
-                EVALÚE EL IMPACTO DE SUS DECISIONES ANTES DE IMPLEMENTARLAS
-              </p>
-            </div>
+        <!-- Slide 1 -->
+        <div
+          class="hero-slide active"
+          style="background-image: url('Media/carrusel.png')"
+        >
+          <div class="hero-text">
+            <h1>INTELIGENCIA FINANCIERA AVANZADA</h1>
+            <p>
+              CFO virtual impulsado por IA para decisiones estratégicas en
+              tiempo real.
+            </p>
           </div>
         </div>
-        <div class="carousel-indicators">
-          <button class="indicator active" data-slide="0"></button>
-          <button class="indicator" data-slide="1"></button>
-          <button class="indicator" data-slide="2"></button>
+
+        <!-- Slide 2 -->
+        <div
+          class="hero-slide"
+          style="background-image: url('Media/carrusel2.png')"
+        >
+          <div class="hero-text">
+            <h1>PREDICCIONES PRECISAS</h1>
+            <p>
+              Análisis predictivo con Prophet para tipo de cambio, inflación e
+              ingresos.
+            </p>
+          </div>
+        </div>
+
+        <!-- Slide 3 -->
+        <div
+          class="hero-slide"
+          style="background-image: url('Media/carrusel3.png')"
+        >
+          <div class="hero-text">
+            <h1>SIMULACIÓN DE ESCENARIOS</h1>
+            <p>Evalúe el impacto de sus decisiones antes de implementarlas.</p>
+          </div>
         </div>
       </div>
     </section>
@@ -109,37 +116,122 @@
     <section class="kpis-section">
       <div class="container">
         <h2 class="section-title">RESUMEN EJECUTIVO</h2>
+        <p>
+          Monitorea la salud financiera de tu empresa con métricas avanzadas con
+          un desglose de tus ingresos, gastos entre otras variables.
+        </p>
+        <section id="resumen">
+          <div class="container">
+            <div id="resumenEjecutivo"></div>
+          </div>
+        </section>
         <div class="kpis-grid">
-          <div class="kpi-card">
-            <div class="kpi-icon"></div>
-            <div class="kpi-content">
-              <h3 class="kpi-label">INGRESOS</h3>
-              <p class="kpi-value" id="ingresos">$0</p>
-              <span class="kpi-trend positive">↑ 4.2%</span>
+          <div class="kpi-card" data-id="ingresos">
+            <h3>INGRESOS</h3>
+            <p>$2,450,000</p>
+            <span>↑ 4.2%</span>
+          </div>
+
+          <div class="kpi-card" data-id="gastos">
+            <h3>GASTOS</h3>
+            <p>$1,850,000</p>
+            <span>↓ 2.1%</span>
+          </div>
+
+          <div class="kpi-card" data-id="flujo">
+            <h3>FLUJO DE CAJA</h3>
+            <p>$600,000</p>
+            <span>↑ 8.3%</span>
+          </div>
+
+          <div class="kpi-card" data-id="margen">
+            <h3>MARGEN NETO</h3>
+            <p>24.5%</p>
+            <span>↑ 1.5%</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- KPI SECUNDARIOS INTERACTIVOS -->
+    <!-- ========================================================= -->
+    <section class="kpi-secondary-container container">
+      <div class="kpi-secondary-title">
+        <h2>Indicadores Financieros Clave</h2>
+        <p>
+          Monitorea la salud financiera de tu empresa con métricas avanzadas.
+        </p>
+      </div>
+
+      <div class="kpi-secondary">
+        <div class="kpi-mini" data-id="roe">
+          <h4>ROE</h4>
+          <p>18.2%</p>
+        </div>
+
+        <div class="kpi-mini" data-id="liquidez">
+          <h4>Liquidez</h4>
+          <p>1.8</p>
+        </div>
+
+        <div class="kpi-mini" data-id="endeudamiento">
+          <h4>Endeudamiento</h4>
+          <p>42%</p>
+        </div>
+
+        <div class="kpi-mini" data-id="crecimiento">
+          <h4>Crec. Ingresos</h4>
+          <p>+4.2%</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Alertas y Recomendaciones -->
+    <section class="alerts-section">
+      <div class="container">
+        <h2 class="section-title">ALERTAS INTELIGENTES</h2>
+        <div class="alerts-grid">
+          <div class="alert-card alert-warning">
+            <div class="alert-icon"></div>
+            <div class="alert-content">
+              <h4>INFLACIÓN PROYECTADA ALTA</h4>
+              <p>
+                La inflación podría alcanzar 5.8% en los próximos 30 días. Se
+                recomienda ajustar precios en +3% para mantener márgenes.
+              </p>
+              <div class="alert-actions">
+                <button class="btn btn-small btn-primary">ACEPTAR</button>
+                <button class="btn btn-small btn-secondary">REVISAR</button>
+              </div>
             </div>
           </div>
-          <div class="kpi-card">
-            <div class="kpi-icon"></div>
-            <div class="kpi-content">
-              <h3 class="kpi-label">GASTOS</h3>
-              <p class="kpi-value" id="gastos">$0</p>
-              <span class="kpi-trend negative">↓ 2.1%</span>
+          <div class="alert-card alert-danger">
+            <div class="alert-icon"></div>
+            <div class="alert-content">
+              <h4>FLUJO DE CAJA CRÍTICO</h4>
+              <p>
+                Se proyecta flujo negativo en 10 días. Considere reducir gastos
+                operativos en 8% o acelerar cobranza.
+              </p>
+              <div class="alert-actions">
+                <button class="btn btn-small btn-primary">VER DETALLES</button>
+                <button class="btn btn-small btn-secondary">POSPONER</button>
+              </div>
             </div>
           </div>
-          <div class="kpi-card">
-            <div class="kpi-icon"></div>
-            <div class="kpi-content">
-              <h3 class="kpi-label">FLUJO DE CAJA</h3>
-              <p class="kpi-value" id="flujo">$0</p>
-              <span class="kpi-trend positive">↑ 8.3%</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon"></div>
-            <div class="kpi-content">
-              <h3 class="kpi-label">MARGEN NETO</h3>
-              <p class="kpi-value" id="margen">0%</p>
-              <span class="kpi-trend positive">↑ 1.5%</span>
+          <div class="alert-card alert-info">
+            <div class="alert-icon"></div>
+            <div class="alert-content">
+              <h4>OPORTUNIDAD DE AHORRO</h4>
+              <p>
+                El tipo de cambio podría bajar 2.3% la próxima semana. Momento
+                óptimo para importaciones planificadas.
+              </p>
+              <div class="alert-actions">
+                <button class="btn btn-small btn-primary">PLANIFICAR</button>
+                <button class="btn btn-small btn-secondary">RECORDAR</button>
+              </div>
             </div>
           </div>
         </div>
@@ -151,30 +243,6 @@
       <div class="container">
         <h2 class="section-title">ANÁLISIS PREDICTIVO</h2>
         <div class="predictions-grid">
-          <!-- Gráfico USD/MXN -->
-          <div class="chart-container">
-            <div class="chart-header">
-              <h3 class="chart-title">TIPO DE CAMBIO USD/MXN</h3>
-              <span class="chart-badge">PREDICCIÓN PROPHET</span>
-            </div>
-            <canvas id="usdChart"></canvas>
-            <div class="chart-footer">
-              <span class="data-source">DATOS EN TIEMPO REAL - BANXICO</span>
-            </div>
-          </div>
-
-          <!-- Gráfico Inflación -->
-          <div class="chart-container">
-            <div class="chart-header">
-              <h3 class="chart-title">INFLACIÓN ANUAL</h3>
-              <span class="chart-badge">PREDICCIÓN PROPHET</span>
-            </div>
-            <canvas id="inflacionChart"></canvas>
-            <div class="chart-footer">
-              <span class="data-source">DATOS EN TIEMPO REAL - INEGI</span>
-            </div>
-          </div>
-
           <!-- Gráfico Ingresos -->
           <div class="chart-container">
             <div class="chart-header">
@@ -247,55 +315,28 @@
               </p>
             </div>
           </div>
-        </div>
-      </div>
-    </section>
 
-    <!-- Alertas y Recomendaciones -->
-    <section class="alerts-section">
-      <div class="container">
-        <h2 class="section-title">ALERTAS INTELIGENTES</h2>
-        <div class="alerts-grid">
-          <div class="alert-card alert-warning">
-            <div class="alert-icon"></div>
-            <div class="alert-content">
-              <h4>INFLACIÓN PROYECTADA ALTA</h4>
-              <p>
-                La inflación podría alcanzar 5.8% en los próximos 30 días. Se
-                recomienda ajustar precios en +3% para mantener márgenes.
-              </p>
-              <div class="alert-actions">
-                <button class="btn btn-small btn-primary">ACEPTAR</button>
-                <button class="btn btn-small btn-secondary">REVISAR</button>
-              </div>
+          <!-- Gráfico USD/MXN -->
+          <div class="chart-container">
+            <div class="chart-header">
+              <h3 class="chart-title">TIPO DE CAMBIO USD/MXN</h3>
+              <span class="chart-badge">PREDICCIÓN PROPHET</span>
+            </div>
+            <canvas id="usdChart"></canvas>
+            <div class="chart-footer">
+              <span class="data-source">DATOS EN TIEMPO REAL - BANXICO</span>
             </div>
           </div>
-          <div class="alert-card alert-danger">
-            <div class="alert-icon"></div>
-            <div class="alert-content">
-              <h4>FLUJO DE CAJA CRÍTICO</h4>
-              <p>
-                Se proyecta flujo negativo en 10 días. Considere reducir gastos
-                operativos en 8% o acelerar cobranza.
-              </p>
-              <div class="alert-actions">
-                <button class="btn btn-small btn-primary">VER DETALLES</button>
-                <button class="btn btn-small btn-secondary">POSPONER</button>
-              </div>
+
+          <!-- Gráfico Inflación -->
+          <div class="chart-container">
+            <div class="chart-header">
+              <h3 class="chart-title">INFLACIÓN ANUAL</h3>
+              <span class="chart-badge">PREDICCIÓN PROPHET</span>
             </div>
-          </div>
-          <div class="alert-card alert-info">
-            <div class="alert-icon"></div>
-            <div class="alert-content">
-              <h4>OPORTUNIDAD DE AHORRO</h4>
-              <p>
-                El tipo de cambio podría bajar 2.3% la próxima semana. Momento
-                óptimo para importaciones planificadas.
-              </p>
-              <div class="alert-actions">
-                <button class="btn btn-small btn-primary">PLANIFICAR</button>
-                <button class="btn btn-small btn-secondary">RECORDAR</button>
-              </div>
+            <canvas id="inflacionChart"></canvas>
+            <div class="chart-footer">
+              <span class="data-source">DATOS EN TIEMPO REAL - INEGI</span>
             </div>
           </div>
         </div>
@@ -321,9 +362,9 @@
           <div class="explainability-card">
             <h4>CONFIANZA DEL MODELO</h4>
             <div class="confidence-meter">
-              <div class="confidence-bar" style="width: 87%"></div>
+              <div class="confidence-bar" style="width: 90%"></div>
             </div>
-            <p class="confidence-text">87% DE CONFIANZA</p>
+            <p class="confidence-text">90% DE CONFIANZA</p>
             <p class="confidence-desc">
               Basado en 24 meses de datos históricos
             </p>
@@ -351,7 +392,7 @@
         <div class="footer-logos">
           <span class="logo">BANORTE</span>
           <span class="footer-divider">×</span>
-          <span class="logo-subtitle">FINCORTEX VOICE</span>
+          <span class="logo-subtitle">CORTEX</span>
         </div>
         <p class="footer-text">
           PLATAFORMA DE INTELIGENCIA FINANCIERA AVANZADA
@@ -387,25 +428,6 @@
             </div>
           </div>
           <div class="chat-header-actions">
-            <button
-              id="voiceModeBtn"
-              class="icon-btn"
-              title="Modo voz"
-              aria-label="Modo voz"
-            >
-              <!-- mic icon -->
-              <svg
-                viewBox="0 0 24 24"
-                width="20"
-                height="20"
-                aria-hidden="true"
-              >
-                <path
-                  fill="currentColor"
-                  d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3Zm5-3a5 5 0 1 1-10 0H5a7 7 0 0 0 6 6.92V20H9v2h6v-2h-2v-2.08A7 7 0 0 0 19 11h-2Z"
-                />
-              </svg>
-            </button>
             <button
               id="chatCloseBtn"
               class="icon-btn"

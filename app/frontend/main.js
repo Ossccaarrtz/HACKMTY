@@ -19,7 +19,7 @@ function updateDate() {
     dateElement.textContent = now
       .toLocaleDateString("es-MX", options)
       .toUpperCase();
-  
+
   const dateMobile = document.getElementById("currentDateMobile");
   if (dateMobile)
     dateMobile.textContent = now
@@ -347,6 +347,282 @@ if (simularBtn) {
   });
 }
 
+// ALERTAS INTELIGENTES - INTERACCIÓN DE BOTONES
+// =========================================================
+
+// Detectar todos los botones de alertas
+document.addEventListener("DOMContentLoaded", () => {
+  const alertCards = document.querySelectorAll(".alert-card");
+
+  alertCards.forEach((card) => {
+    card.addEventListener("click", (e) => {
+      const target = e.target;
+
+      // --- 1. BOTONES QUE ELIMINAN LA ALERTA ---
+      if (
+        target.textContent.includes("ACEPTAR") ||
+        target.textContent.includes("POSPONER")
+      ) {
+        card.classList.add("fade-out");
+        setTimeout(() => card.remove(), 500); // elimina tras animación
+      }
+
+      // --- 2. BOTONES QUE ABREN MODAL ---
+      if (
+        target.textContent.includes("REVISAR") ||
+        target.textContent.includes("VER DETALLES")
+      ) {
+        const title = card.querySelector("h4").textContent;
+        const details = card.querySelector("p").textContent;
+
+        const modal = document.createElement("div");
+        modal.className = "alert-modal";
+        modal.innerHTML = `
+          <div class="alert-modal-content">
+            <h3>${title}</h3>
+            <p>${details}</p>
+            <p style="margin-top:1rem;">📊 <strong>Análisis detallado:</strong> Esta alerta se generó a partir del modelo Prophet (META) con datos históricos y tendencias de los últimos 30 días. Puede consultar las proyecciones en la sección “Análisis Predictivo”.</p>
+            <div class="alert-modal-actions">
+              <button class="btn btn-primary" id="closeAlertModal">Cerrar</button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(modal);
+
+        // Cerrar modal
+        modal
+          .querySelector("#closeAlertModal")
+          .addEventListener("click", () => {
+            modal.classList.add("fade-out");
+            setTimeout(() => modal.remove(), 300);
+          });
+      }
+    });
+  });
+});
+
+// =========================================================
+// RESUMEN EJECUTIVO CON RECOMENDACIONES BANORTE
+// =========================================================
+function generarResumenEjecutivo() {
+  const ingresos = 2450000;
+  const gastos = 1850000;
+  const flujo = 600000;
+  const margen = 24.5;
+
+  const estado =
+    flujo > 500000 && margen > 20
+      ? "Bueno"
+      : flujo > 300000
+      ? "Regular"
+      : "En riesgo";
+
+  let recomendacion = "";
+  if (estado === "Bueno") {
+    recomendacion =
+      "La empresa presenta buena salud financiera. Banorte recomienda explorar opciones de inversión en instrumentos de bajo riesgo o expansión controlada.";
+  } else if (estado === "Regular") {
+    recomendacion =
+      "La empresa mantiene estabilidad, pero debe reforzar su flujo de caja. Banorte recomienda revisar líneas de crédito y optimizar gastos operativos.";
+  } else {
+    recomendacion =
+      "La empresa está en zona de riesgo financiero. Se sugiere revisar estructura de deuda y considerar financiamiento Banorte para estabilizar liquidez.";
+  }
+
+  const resumenContainer = document.getElementById("resumenEjecutivo");
+  if (resumenContainer) {
+    resumenContainer.innerHTML = `
+      <div class="executive-summary fade-in">
+        <h3>Resumen Ejecutivo</h3>
+        <p><strong>Estado financiero:</strong> ${estado}</p>
+        <p>${recomendacion}</p>
+      </div>`;
+  }
+}
+
+// Ejecutar después de cargar
+document.addEventListener("DOMContentLoaded", generarResumenEjecutivo);
+
+// =========================================================
+// DESGLOSE INTERACTIVO DE KPI (EMPRESA DE DIVISAS)
+// =========================================================
+const kpiDetalles = {
+  ingresos: {
+    titulo: "Ingresos",
+    texto: `
+      <strong>Fuente principal:</strong> Conversión USD/MXN y transferencias internacionales.<br><br>
+      Los ingresos aumentaron un 4.2% debido a la apreciación del peso y a un mayor volumen de operaciones minoristas.
+      <br><br>
+      <strong>Recomendación:</strong> Mantener tarifas competitivas en operaciones de cambio y explorar alianzas con corredores institucionales.
+    `,
+  },
+  gastos: {
+    titulo: "Gastos",
+    texto: `
+      <strong>Principales rubros:</strong> comisiones bancarias, mantenimiento de sistemas y cobertura de riesgo cambiario.<br><br>
+      Los gastos se redujeron 2.1% gracias a una renegociación de tarifas con corresponsales internacionales.
+      <br><br>
+      <strong>Recomendación:</strong> Optimizar costos tecnológicos mediante automatización de conciliaciones y control de spreads.
+    `,
+  },
+  flujo: {
+    titulo: "Flujo de Caja",
+    texto: `
+      <strong>Contexto:</strong> El flujo positivo de $600,000 refleja una sólida gestión de liquidez pese a la volatilidad cambiaria.
+      <br><br>
+      <strong>Riesgos:</strong> una depreciación del peso o bajas en el volumen de remesas podrían reducir la liquidez disponible.
+      <br><br>
+      <strong>Recomendación:</strong> Mantener reservas en dólares y explorar instrumentos de cobertura Banorte FX Shield.
+    `,
+  },
+  margen: {
+    titulo: "Margen Neto",
+    texto: `
+      <strong>Desempeño:</strong> Margen del 24.5%, impulsado por el diferencial favorable entre compra y venta de divisas.
+      <br><br>
+      <strong>Interpretación:</strong> La empresa opera con rentabilidad saludable, aunque sensible a la volatilidad del mercado.
+      <br><br>
+      <strong>Recomendación:</strong> Considerar inversión en infraestructura digital Banorte para aumentar la eficiencia operativa.
+    `,
+  },
+};
+
+// Detectar clics sobre las tarjetas KPI
+document.querySelectorAll(".kpi-card").forEach((card) => {
+  card.addEventListener("click", () => {
+    const id = card.getAttribute("data-id");
+    if (!id || !kpiDetalles[id]) return;
+
+    const info = kpiDetalles[id];
+    const modal = document.createElement("div");
+    modal.className = "chart-modal";
+    modal.innerHTML = `
+      <div class="chart-modal-content">
+        <h3>${info.titulo}</h3>
+        <p>${info.texto}</p>
+        <button id="closeModalBtn">Cerrar</button>
+      </div>`;
+    document.body.appendChild(modal);
+    document
+      .getElementById("closeModalBtn")
+      .addEventListener("click", () => modal.remove());
+  });
+});
+
+// =========================================================
+// KPI SECUNDARIOS - DETALLES INTERACTIVOS
+// =========================================================
+const kpiInfo = {
+  roe: {
+    titulo: "ROE (Return on Equity)",
+    descripcion: `
+      <strong>Qué mide:</strong> rentabilidad sobre el capital invertido por los socios.<br><br>
+      <strong>Resultado:</strong> 18.2% indica que la empresa genera $0.18 por cada peso de capital.<br><br>
+      <strong>Recomendación Banorte:</strong> destina parte de tus utilidades a fondos de inversión empresariales
+      para mejorar el rendimiento del capital propio.`,
+  },
+  liquidez: {
+    titulo: "Liquidez Corriente",
+    descripcion: `
+      <strong>Qué mide:</strong> capacidad de pagar deudas de corto plazo.<br><br>
+      <strong>Resultado:</strong> Razón 1.8 — solvencia estable y bajo riesgo de liquidez.<br><br>
+      <strong>Recomendación:</strong> mantén reservas en efectivo para cubrir 3 meses de operaciones.`,
+  },
+  endeudamiento: {
+    titulo: "Endeudamiento Total",
+    descripcion: `
+      <strong>Qué mide:</strong> porcentaje de activos financiados con deuda.<br><br>
+      <strong>Resultado:</strong> 42% — nivel saludable. La empresa aprovecha apalancamiento sin sobreendeudarse.<br><br>
+      <strong>Recomendación Banorte:</strong> si buscas expansión, podrías acceder a un crédito PyME preferencial.`,
+  },
+  crecimiento: {
+    titulo: "Crecimiento de Ingresos",
+    descripcion: `
+      <strong>Qué mide:</strong> evolución de los ingresos frente al mes anterior.<br><br>
+      <strong>Resultado:</strong> +4.2% — tendencia positiva por aumento en operaciones USD/MXN.<br><br>
+      <strong>Recomendación:</strong> consolida esta tendencia con estrategias de fidelización de clientes.`,
+  },
+};
+
+// Mostrar modal al hacer clic
+document.querySelectorAll(".kpi-mini").forEach((mini) => {
+  mini.addEventListener("click", () => {
+    const id = mini.dataset.id;
+    const info = kpiInfo[id];
+    if (!info) return;
+
+    const modal = document.createElement("div");
+    modal.className = "kpi-modal";
+    modal.innerHTML = `
+      <div class="kpi-modal-content">
+        <h3>${info.titulo}</h3>
+        <p>${info.descripcion}</p>
+        <button id="closeKpiModal">Cerrar</button>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    document.getElementById("closeKpiModal").addEventListener("click", () => {
+      modal.remove();
+    });
+  });
+});
+
+// =========================================================
+// DESCRIPCIONES AL HACER CLICK EN LAS GRÁFICAS
+// =========================================================
+const chartDescriptions = {
+  usdChart: {
+    title: "Cambio USD/MXN",
+    text: "Muestra la evolución y predicción del tipo de cambio. Es crucial para empresas que importan o exportan, ya que un dólar más caro puede reducir el margen o aumentar costos.",
+  },
+  inflacionChart: {
+    title: "Inflación",
+    text: "Refleja la tendencia de los precios generales. Una inflación alta erosiona el poder de compra y afecta la planeación financiera de la empresa.",
+  },
+  ingresosChart: {
+    title: "Ingresos proyectados",
+    text: "Permite observar la tendencia de crecimiento mensual. Un aumento sostenido indica estabilidad y oportunidad de inversión.",
+  },
+};
+
+Object.keys(chartDescriptions).forEach((id) => {
+  const canvas = document.getElementById(id);
+  if (!canvas) return;
+  canvas.addEventListener("click", () => {
+    const info = chartDescriptions[id];
+    const modal = document.createElement("div");
+    modal.className = "chart-modal";
+    modal.innerHTML = `
+      <div class="chart-modal-content">
+        <h3>${info.title}</h3>
+        <p>${info.text}</p>
+        <button id="closeModalBtn">Cerrar</button>
+      </div>`;
+    document.body.appendChild(modal);
+    document
+      .getElementById("closeModalBtn")
+      .addEventListener("click", () => modal.remove());
+  });
+});
+
+/// =========================================================
+// CARRUSEL HERO (actualizado con imágenes y texto a la izquierda)
+// =========================================================
+let currentHeroSlide = 0;
+const heroSlides = document.querySelectorAll(".hero-slide");
+
+function changeHeroSlide() {
+  heroSlides[currentHeroSlide].classList.remove("active");
+  currentHeroSlide = (currentHeroSlide + 1) % heroSlides.length;
+  heroSlides[currentHeroSlide].classList.add("active");
+}
+
+// Cambia cada 5 segundos
+if (heroSlides.length > 0) {
+  setInterval(changeHeroSlide, 5000);
+}
+
 // =========================================================
 // ================== CHAT CON IA (TEXTO + VOZ) ============
 // =========================================================
@@ -373,7 +649,7 @@ if (simularBtn) {
     chatBackdrop?.classList.remove("hidden");
     if (chatToggle) chatToggle.style.display = "none";
   }
-  
+
   function closeChat() {
     chatBackdrop?.classList.add("hidden");
     if (chatToggle) chatToggle.style.display = "";
@@ -473,7 +749,7 @@ if (simularBtn) {
     startTop = rect.top;
     document.body.style.userSelect = "none";
   });
-  
+
   window.addEventListener("mousemove", (e) => {
     if (!isDragging) return;
     const dx = e.clientX - startX;
@@ -482,7 +758,7 @@ if (simularBtn) {
     chatWindow.style.left = `${startLeft + dx}px`;
     chatWindow.style.top = `${startTop + dy}px`;
   });
-  
+
   window.addEventListener("mouseup", () => {
     if (!isDragging) return;
     isDragging = false;
@@ -493,7 +769,8 @@ if (simularBtn) {
   // ---- MODO VOZ (GRABACIÓN + ENVÍO + REPRODUCCIÓN) ----
   // =========================================================
   let audioCtx, analyser, micStream, dataArray, rafId;
-  let mediaRecorder, audioChunks = [];
+  let mediaRecorder,
+    audioChunks = [];
 
   async function startVoice() {
     try {
