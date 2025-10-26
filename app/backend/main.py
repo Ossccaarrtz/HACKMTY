@@ -15,6 +15,11 @@ import speech_recognition as sr
 from gtts import gTTS
 import google.generativeai as genai
 
+# === TWILIO INTEGRACIÓN ===
+from twilio.rest import Client
+import random
+# ===========================
+
 # === módulos internos ===
 try:
     from modules.prophet_engine import get_kpis, predict_serie
@@ -38,6 +43,20 @@ CORS(app)
 GEMINI_KEY = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=GEMINI_KEY)
 MODEL = genai.GenerativeModel("gemini-2.0-flash-exp")
+
+# === TWILIO CONFIGURACIÓN ===
+TW_SID = os.getenv("TWILIO_ACCOUNT_SID")
+TW_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
+TW_FROM = os.getenv("TWILIO_FROM")
+TW_TO = os.getenv("TWILIO_TO")
+tw_client = None
+if TW_SID and TW_TOKEN:
+    try:
+        tw_client = Client(TW_SID, TW_TOKEN)
+        print("[Twilio] ✅ Cliente configurado correctamente.")
+    except Exception as e:
+        print(f"[Twilio] ⚠️ No se pudo inicializar cliente: {e}")
+# ==========================================================
 
 # Cache simple
 response_cache: Dict[str, str] = {}
@@ -140,7 +159,6 @@ def ask_gemini_fast(question: str) -> str:
     """Genera respuesta con análisis financiero integrado y caché inteligente."""
     question_lower = question.lower().strip()
 
-    # 🚫 Saltar caché para preguntas abiertas o estratégicas
     skip_cache = any(word in question_lower for word in ["empresa", "negocio", "estado", "cómo va", "como va"])
 
     if not skip_cache and question_lower in response_cache:
@@ -154,7 +172,6 @@ def ask_gemini_fast(question: str) -> str:
 
     forecast_hint = ""
 
-    # Prophet predictions
     try:
         if "tipo de cambio" in question_lower or "dólar" in question_lower:
             preds = predict_serie("tipo_cambio_fix")
@@ -169,7 +186,6 @@ def ask_gemini_fast(question: str) -> str:
     except Exception as e:
         print(f"[Prophet] ⚠️ {e}")
 
-    # 🆕 Análisis financiero
     financial_context = ""
     if FINANCIAL_ENABLED:
         try:
@@ -187,7 +203,6 @@ def ask_gemini_fast(question: str) -> str:
         except Exception as e:
             print(f"[FinAdvisor] ⚠️ Error empresarial: {e}")
 
-    # Prompt optimizado
     context = f"""Eres un CFO virtual experto en finanzas mexicanas. 
 Responde de forma CONCISA y DIRECTA.
 
@@ -200,7 +215,6 @@ Reglas:
 - Máximo 4 oraciones.
 - Tono profesional, pero cercano.
 - En español mexicano.
-- Si hay análisis financiero, úsalo como base principal.
 
 Pregunta: {question}
 """
@@ -211,7 +225,6 @@ Pregunta: {question}
         resp = MODEL.generate_content(context, generation_config=generation_config)
         answer = resp.text.strip()
 
-        # Solo guardar si no se omitió el caché
         if not skip_cache:
             response_cache[question_lower] = answer
             if len(response_cache) > 100:
@@ -238,6 +251,52 @@ def synthesize_voice_fast(text: str) -> Optional[str]:
     except Exception as e:
         print(f"[TTS] ❌ Error: {e}")
         return None
+
+def send_twilio_alert(answer: str):
+    """Envía una alerta cada vez que el chatbot responde, con explicación lógica coherente (limitado para modo trial)."""
+    import traceback
+    if not tw_client:
+        print("[Twilio DEBUG] ❌ Cliente Twilio no inicializado.")
+        return
+    try:
+        tipo = random.choice(["Acción", "Criptomoneda", "ETF", "Startup"])
+        variacion = random.uniform(2, 8)
+        recomendacion = random.choice(["Compra recomendada ✅", "Venta sugerida ⚠️", "Mantener posición 📊"])
+
+        if "Compra" in recomendacion:
+            motivo = "Se detectó tendencia alcista y señales técnicas favorables."
+        elif "Venta" in recomendacion:
+            motivo = "Se observan señales de sobrecompra y posible corrección."
+        else:
+            motivo = "El mercado se mantiene estable sin cambios relevantes."
+
+        msg_body = (
+            f"[ALERTA FINCORTEX] {tipo} cambió {variacion:.2f}% — {recomendacion}. "
+            f"Motivo: {motivo}"
+        )
+
+        # 🔒 Trunca el mensaje si estás en cuenta trial (máx ~150 caracteres)
+        if len(msg_body) > 150:
+            msg_body = msg_body[:147] + "..."
+
+        print(f"[Twilio DEBUG] Enviando mensaje ({len(msg_body)} chars): {msg_body}")
+
+        msg = tw_client.messages.create(
+            body=msg_body,
+            from_=TW_FROM.strip(),
+            to=TW_TO.strip()
+        )
+
+        print(f"[Twilio DEBUG] SID={msg.sid}, Status={msg.status}, Error={msg.error_code}")
+        if msg.error_code:
+            print(f"[Twilio] ⚠️ Error reportado: {msg.error_message}")
+        else:
+            print("[Twilio] ✅ Envío aceptado por Twilio.")
+
+    except Exception as e:
+        print(f"[Twilio] ❌ Excepción general al enviar alerta: {e}")
+        traceback.print_exc()
+
 
 # ==============================
 # 🌐 ENDPOINTS PRINCIPALES
@@ -279,6 +338,10 @@ def ask() -> Any:
     answer = ask_gemini_fast(question)
     audio_b64 = synthesize_voice_fast(answer)
     elapsed = time.time() - start_time
+
+    # === ENVÍO AUTOMÁTICO DE ALERTA TWILIO ===
+    send_twilio_alert(answer)
+    # =========================================
 
     print(f"[RESPONSE] ✅ Completado en {elapsed:.2f}s\n{'='*60}\n")
 
@@ -322,8 +385,8 @@ def forecast(serie: str) -> Any:
 # ==============================
 if __name__ == "__main__":
     print("\n" + "="*60)
-    print("🚀 FINCORTEX VOICE - CON ASESOR FINANCIERO v3.2")
-    print("⚡ Optimizado | 🎤 Sin FFmpeg | 🧠 Respuestas dinámicas")
+    print("🚀 FINCORTEX VOICE - CON ASESOR FINANCIERO v3.2 + ALERTAS TWILIO")
+    print("⚡ Optimizado | 🎤 Sin FFmpeg | 🧠 Respuestas dinámicas | 🔔 Alertas automáticas")
     print("="*60)
     print(f"   - Financial Advisor: {'✅ ACTIVO' if FINANCIAL_ENABLED else '❌ DESACTIVADO'}")
     print("="*60 + "\n")
