@@ -1,9 +1,4 @@
 // =========================================================
-// CONFIGURACIÓN DEL BACKEND
-// =========================================================
-const BACKEND_URL = "http://localhost:8000";
-
-// =========================================================
 // FECHA EN EL HEADER
 // =========================================================
 function updateDate() {
@@ -19,46 +14,8 @@ function updateDate() {
     dateElement.textContent = now
       .toLocaleDateString("es-MX", options)
       .toUpperCase();
-  
-  const dateMobile = document.getElementById("currentDateMobile");
-  if (dateMobile)
-    dateMobile.textContent = now
-      .toLocaleDateString("es-MX", options)
-      .toUpperCase();
 }
 updateDate();
-
-// =========================================================
-// MENÚ MÓVIL
-// =========================================================
-const hamburgerBtn = document.getElementById("hamburgerBtn");
-const closeMenuBtn = document.getElementById("closeMenuBtn");
-const mobileMenu = document.getElementById("mobileMenu");
-const menuOverlay = document.getElementById("menuOverlay");
-
-if (hamburgerBtn && mobileMenu) {
-  hamburgerBtn.addEventListener("click", () => {
-    mobileMenu.classList.add("open");
-    menuOverlay.hidden = false;
-    hamburgerBtn.classList.add("is-active");
-  });
-}
-
-if (closeMenuBtn && mobileMenu) {
-  closeMenuBtn.addEventListener("click", () => {
-    mobileMenu.classList.remove("open");
-    menuOverlay.hidden = true;
-    hamburgerBtn.classList.remove("is-active");
-  });
-}
-
-if (menuOverlay) {
-  menuOverlay.addEventListener("click", () => {
-    mobileMenu.classList.remove("open");
-    menuOverlay.hidden = true;
-    hamburgerBtn.classList.remove("is-active");
-  });
-}
 
 // =========================================================
 // CARRUSEL HERO
@@ -114,7 +71,7 @@ setTimeout(() => {
 }, 300);
 
 // =========================================================
-// CHARTS
+// CHARTS (mantiene tus gráficas iguales)
 // =========================================================
 const chartColors = {
   primary: "#e30613",
@@ -348,8 +305,63 @@ if (simularBtn) {
 }
 
 // =========================================================
-// ================== CHAT CON IA (TEXTO + VOZ) ============
+// CHAT FLOTANTE + VOZ IA MEJORADO
 // =========================================================
+
+// ELEMENTOS DEL CHAT
+const chatToggle = document.getElementById("chatToggle");
+const chatBox = document.getElementById("chatBox");
+const minimizeChatBtn = document.getElementById("minimizeChatBtn");
+const voiceModeBtn = document.getElementById("voiceModeBtn");
+const voiceOverlay = document.getElementById("voiceModeOverlay");
+const stopVoiceBtn = document.getElementById("stopVoiceBtn");
+const chatInput = document.getElementById("chatInput");
+const chatSend = document.getElementById("chatSend");
+const chatMessages = document.getElementById("chatMessages");
+
+// Mostrar / ocultar chat flotante
+if (chatToggle) {
+  chatToggle.addEventListener("click", () => {
+    chatBox.classList.remove("hidden");
+    chatToggle.style.display = "none";
+  });
+}
+
+if (minimizeChatBtn) {
+  minimizeChatBtn.addEventListener("click", () => {
+    chatBox.classList.add("hidden");
+    chatToggle.style.display = "flex";
+  });
+}
+
+// Función para agregar mensajes al chat
+function appendMessage(text, sender = "bot") {
+  if (!chatMessages) return;
+  const msg = document.createElement("div");
+  msg.classList.add("message", sender);
+  msg.textContent = text;
+  chatMessages.appendChild(msg);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Enviar texto manual
+if (chatSend && chatInput) {
+  chatSend.addEventListener("click", () => {
+    const text = chatInput.value.trim();
+    if (!text) return;
+    appendMessage(text, "user");
+    chatInput.value = "";
+    setTimeout(() => {
+      appendMessage("🤖 Analizando tu consulta...", "bot");
+    }, 800);
+  });
+
+  chatInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") chatSend.click();
+  });
+}
+
+// ================== CHAT FLOTANTE + VOZ ==================
 (() => {
   const qs = (sel) => document.querySelector(sel);
 
@@ -370,24 +382,24 @@ if (simularBtn) {
 
   // ---- Abrir / cerrar chat ----
   function openChat() {
-    chatBackdrop?.classList.remove("hidden");
-    if (chatToggle) chatToggle.style.display = "none";
+    chatBackdrop.classList.remove("hidden");
+    chatToggle.style.display = "none"; // ocultar botón flotante
+    // centrar en móvil; en desktop aparece esquina pero movible
   }
-  
   function closeChat() {
-    chatBackdrop?.classList.add("hidden");
-    if (chatToggle) chatToggle.style.display = "";
+    chatBackdrop.classList.add("hidden");
+    chatToggle.style.display = ""; // mostrar botón flotante
   }
 
   chatToggle?.addEventListener("click", openChat);
   chatCloseBtn?.addEventListener("click", closeChat);
   chatBackdrop?.addEventListener("click", (e) => {
+    // solo si clic fuera de la ventana
     if (e.target === chatBackdrop) closeChat();
   });
 
-  // ---- Función para agregar mensajes ----
+  // ---- Enviar mensaje ----
   function appendMessage(text, who = "user") {
-    if (!chatBody) return;
     const div = document.createElement("div");
     div.className = `msg ${who}`;
     div.textContent = text;
@@ -395,59 +407,18 @@ if (simularBtn) {
     chatBody.scrollTop = chatBody.scrollHeight;
   }
 
-  // ---- Enviar mensaje de TEXTO al backend ----
-  async function sendTextMessage(text) {
-    if (!text || !text.trim()) return;
-
-    appendMessage(text, "user");
-    appendMessage("🤖 Pensando...", "bot");
-
-    try {
-      const response = await fetch(`${BACKEND_URL}/ask`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: text }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Error del servidor: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log("✅ Respuesta recibida:", data);
-
-      // Eliminar el mensaje de "Pensando..."
-      const lastMsg = chatBody.lastChild;
-      if (lastMsg && lastMsg.textContent.includes("Pensando")) {
-        chatBody.removeChild(lastMsg);
-      }
-
-      // Mostrar respuesta
-      appendMessage(data.text, "bot");
-
-      // Reproducir audio si está disponible
-      if (data.audio_base64) {
-        playAudioResponse(data.audio_base64);
-      }
-    } catch (error) {
-      console.error("❌ Error:", error);
-      const lastMsg = chatBody.lastChild;
-      if (lastMsg && lastMsg.textContent.includes("Pensando")) {
-        chatBody.removeChild(lastMsg);
-      }
-      appendMessage(
-        "❌ Error al conectar con el servidor. Verifica que el backend esté corriendo en " +
-          BACKEND_URL,
-        "bot"
-      );
-    }
-  }
-
   function sendChat() {
     const text = (chatInput?.value || "").trim();
     if (!text) return;
-    sendTextMessage(text);
-    if (chatInput) chatInput.value = "";
+    appendMessage(text, "user");
+    chatInput.value = "";
+    // Simulación de respuesta
+    setTimeout(() => {
+      appendMessage(
+        "Entendido. Estoy procesando tu solicitud con los últimos datos disponibles.",
+        "bot"
+      );
+    }, 700);
   }
 
   chatSendBtn?.addEventListener("click", sendChat);
@@ -473,7 +444,6 @@ if (simularBtn) {
     startTop = rect.top;
     document.body.style.userSelect = "none";
   });
-  
   window.addEventListener("mousemove", (e) => {
     if (!isDragging) return;
     const dx = e.clientX - startX;
@@ -482,22 +452,20 @@ if (simularBtn) {
     chatWindow.style.left = `${startLeft + dx}px`;
     chatWindow.style.top = `${startTop + dy}px`;
   });
-  
   window.addEventListener("mouseup", () => {
     if (!isDragging) return;
     isDragging = false;
     document.body.style.userSelect = "";
   });
 
-  // =========================================================
-  // ---- MODO VOZ (GRABACIÓN + ENVÍO + REPRODUCCIÓN) ----
-  // =========================================================
+  // ---- Modo VOZ (micrófono + ondas + GRABACIÓN Y ENVÍO) ----
   let audioCtx, analyser, micStream, dataArray, rafId;
   let mediaRecorder, audioChunks = [];
+  const BACKEND_URL = "http://localhost:8000";
 
   async function startVoice() {
     try {
-      // Pedir permiso y stream
+      // pedir permiso + stream
       micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       const src = audioCtx.createMediaStreamSource(micStream);
@@ -510,7 +478,7 @@ if (simularBtn) {
       // 🎙️ Iniciar grabación
       audioChunks = [];
       mediaRecorder = new MediaRecorder(micStream);
-
+      
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           audioChunks.push(event.data);
@@ -518,7 +486,7 @@ if (simularBtn) {
       };
 
       mediaRecorder.onstop = async () => {
-        console.log("🎤 Grabación detenida, enviando audio al backend...");
+        console.log("🎤 Grabación detenida, enviando audio...");
         const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
         await sendAudioToBackend(audioBlob);
       };
@@ -526,10 +494,10 @@ if (simularBtn) {
       mediaRecorder.start();
       console.log("🎤 Grabación iniciada...");
 
-      voiceOverlay?.classList.remove("hidden");
+      voiceOverlay.classList.remove("hidden");
       drawWaves();
     } catch (err) {
-      alert("No se pudo acceder al micrófono. Verifica los permisos.");
+      alert("No se pudo acceder al micrófono. Verifica permisos.");
       console.error(err);
     }
   }
@@ -539,6 +507,7 @@ if (simularBtn) {
       const formData = new FormData();
       formData.append("audio", audioBlob, "recording.webm");
 
+      // Mostrar mensaje de procesamiento
       appendMessage("🎤 Procesando tu audio...", "bot");
 
       const response = await fetch(`${BACKEND_URL}/ask`, {
@@ -551,31 +520,18 @@ if (simularBtn) {
       }
 
       const data = await response.json();
-      console.log("✅ Respuesta de audio recibida:", data);
+      console.log("✅ Respuesta recibida:", data);
 
-      // Eliminar mensaje de "Procesando"
-      const lastMsg = chatBody.lastChild;
-      if (lastMsg && lastMsg.textContent.includes("Procesando")) {
-        chatBody.removeChild(lastMsg);
-      }
-
-      // Mostrar respuesta
+      // Mostrar respuesta en el chat
       appendMessage(data.text, "bot");
 
-      // Reproducir audio de respuesta
+      // Reproducir audio de respuesta si está disponible
       if (data.audio_base64) {
         playAudioResponse(data.audio_base64);
       }
     } catch (error) {
       console.error("❌ Error al enviar audio:", error);
-      const lastMsg = chatBody.lastChild;
-      if (lastMsg && lastMsg.textContent.includes("Procesando")) {
-        chatBody.removeChild(lastMsg);
-      }
-      appendMessage(
-        "❌ Error al procesar el audio. Verifica que el backend esté corriendo.",
-        "bot"
-      );
+      appendMessage("❌ Error al procesar el audio. Intenta de nuevo.", "bot");
     }
   }
 
@@ -591,22 +547,21 @@ if (simularBtn) {
 
   function stopVoice() {
     cancelAnimationFrame(rafId);
-
+    
     // Detener grabación
     if (mediaRecorder && mediaRecorder.state !== "inactive") {
       mediaRecorder.stop();
     }
-
+    
     if (micStream) micStream.getTracks().forEach((t) => t.stop());
     if (audioCtx) audioCtx.close();
     micStream = null;
     audioCtx = null;
     analyser = null;
-    voiceOverlay?.classList.add("hidden");
+    voiceOverlay.classList.add("hidden");
   }
 
   function drawWaves() {
-    if (!voiceCanvas) return;
     const ctx = voiceCanvas.getContext("2d");
     const W = voiceCanvas.width,
       H = voiceCanvas.height;
@@ -617,6 +572,7 @@ if (simularBtn) {
       analyser.getByteFrequencyData(dataArray);
 
       ctx.clearRect(0, 0, W, H);
+      // barra central con suavizado
       const bars = 40;
       const step = Math.floor(dataArray.length / bars);
       for (let i = 0; i < bars; i++) {
@@ -637,4 +593,7 @@ if (simularBtn) {
   voiceOverlay?.addEventListener("click", (e) => {
     if (e.target === voiceOverlay) stopVoice();
   });
+
+  // Solicitar permiso "temprano" si quieres (opcional):
+  // navigator.mediaDevices.getUserMedia({ audio:true }).then(s => s.getTracks().forEach(t=>t.stop())).catch(()=>{});
 })();
