@@ -1,4 +1,4 @@
-# app/backend/main.py - VERSION SIN DEPENDENCIA DE FFMPEG
+# app/backend/main.py - VERSION CORREGIDA CON MODELO ESTABLE
 from __future__ import annotations
 import os
 import base64
@@ -40,15 +40,57 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
+# Verificar API Key
 GEMINI_KEY = os.getenv("GEMINI_API_KEY")
+if not GEMINI_KEY:
+    print("❌ ERROR: GEMINI_API_KEY no está configurada en el archivo .env")
+    print("   Por favor, agrega tu API key en app/backend/.env")
+    exit(1)
+
+print(f"[Config] ✅ API Key cargada: {GEMINI_KEY[:10]}...{GEMINI_KEY[-5:]}")
+
+# Configurar Gemini con manejo de errores
 genai.configure(api_key=GEMINI_KEY)
-MODEL = genai.GenerativeModel("gemini-2.0-flash-exp")
+
+# Intentar con diferentes modelos hasta encontrar uno que funcione
+MODELS_TO_TRY = [
+    "gemini-2.0-flash-exp",
+]
+
+MODEL = None
+MODEL_NAME = None
+for model_name in MODELS_TO_TRY:
+    try:
+        print(f"[Gemini] 🧪 Probando modelo: {model_name}")
+        test_model = genai.GenerativeModel(model_name)
+        # Test rápido
+        test_response = test_model.generate_content(
+            "Di solo 'ok'",
+            generation_config={"temperature": 0.7, "max_output_tokens": 10}
+        )
+        if test_response and test_response.text:
+            MODEL = test_model
+            MODEL_NAME = model_name
+            print(f"[Gemini] ✅ Modelo funcionando: {model_name}")
+            break
+    except Exception as e:
+        print(f"[Gemini] ⚠️ Modelo {model_name} falló: {str(e)[:100]}")
+        continue
+
+if MODEL is None:
+    print("❌ ERROR: No se pudo inicializar ningún modelo de Gemini")
+    print("   Verifica:")
+    print("   1. Tu API key es válida")
+    print("   2. Tienes acceso a la API en tu región")
+    print("   3. No has excedido tu cuota")
+    print("   4. Tienes conexión a internet")
+    exit(1)
 
 # === TWILIO CONFIGURACIÓN ===
 TW_SID = os.getenv("TWILIO_ACCOUNT_SID")
 TW_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
 TW_FROM = os.getenv("TWILIO_FROM")
-TW_TO = os.getenv("TWILIO_TO")
+TW_TO = os.getenv("ALERT_TO")  # Cambiado de TWILIO_TO a ALERT_TO según tu .env
 tw_client = None
 if TW_SID and TW_TOKEN:
     try:
@@ -221,8 +263,19 @@ Pregunta: {question}
 
     try:
         print("[Gemini] 🧠 Generando respuesta...")
-        generation_config = {"temperature": 0.7, "max_output_tokens": 250}
+        generation_config = {
+            "temperature": 0.7, 
+            "max_output_tokens": 250,
+            "top_p": 0.95,
+            "top_k": 40
+        }
+        
         resp = MODEL.generate_content(context, generation_config=generation_config)
+        
+        # Verificar que la respuesta tenga contenido
+        if not resp or not resp.text:
+            raise Exception("Respuesta vacía del modelo")
+            
         answer = resp.text.strip()
 
         if not skip_cache:
@@ -230,11 +283,16 @@ Pregunta: {question}
             if len(response_cache) > 100:
                 response_cache.pop(next(iter(response_cache)))
 
-        print("[Gemini] ✅ Respuesta generada")
+        print(f"[Gemini] ✅ Respuesta generada ({len(answer)} chars)")
         return answer
+        
     except Exception as e:
-        print(f"[Gemini] ❌ Error: {e}")
-        return "Lo siento, no pude generar una respuesta en este momento."
+        import traceback
+        print(f"[Gemini] ❌ Error al generar respuesta: {e}")
+        traceback.print_exc()
+        
+        # Respuesta de fallback
+        return "Disculpa, tuve un problema al procesar tu pregunta. Por favor, intenta de nuevo o reformula tu pregunta."
 
 # ==============================
 # 🔊 Text-to-Speech
@@ -247,16 +305,18 @@ def synthesize_voice_fast(text: str) -> Optional[str]:
         audio_fp = io.BytesIO()
         tts.write_to_fp(audio_fp)
         audio_fp.seek(0)
-        return base64.b64encode(audio_fp.read()).decode('utf-8')
+        audio_b64 = base64.b64encode(audio_fp.read()).decode('utf-8')
+        print(f"[TTS] ✅ Audio generado ({len(audio_b64)} chars base64)")
+        return audio_b64
     except Exception as e:
         print(f"[TTS] ❌ Error: {e}")
         return None
 
 def send_twilio_alert(answer: str):
-    """Envía una alerta cada vez que el chatbot responde, con explicación lógica coherente (limitado para modo trial)."""
+    """Envía una alerta cada vez que el chatbot responde."""
     import traceback
     if not tw_client:
-        print("[Twilio DEBUG] ❌ Cliente Twilio no inicializado.")
+        print("[Twilio DEBUG] ⚠️ Cliente Twilio no inicializado.")
         return
     try:
         tipo = random.choice(["Acción", "Criptomoneda", "ETF", "Startup"])
@@ -275,7 +335,7 @@ def send_twilio_alert(answer: str):
             f"Motivo: {motivo}"
         )
 
-        # 🔒 Trunca el mensaje si estás en cuenta trial (máx ~150 caracteres)
+        # Truncar mensaje si es muy largo (cuentas trial tienen límite)
         if len(msg_body) > 150:
             msg_body = msg_body[:147] + "..."
 
@@ -287,14 +347,14 @@ def send_twilio_alert(answer: str):
             to=TW_TO.strip()
         )
 
-        print(f"[Twilio DEBUG] SID={msg.sid}, Status={msg.status}, Error={msg.error_code}")
+        print(f"[Twilio DEBUG] SID={msg.sid}, Status={msg.status}")
         if msg.error_code:
-            print(f"[Twilio] ⚠️ Error reportado: {msg.error_message}")
+            print(f"[Twilio] ⚠️ Error: {msg.error_message}")
         else:
-            print("[Twilio] ✅ Envío aceptado por Twilio.")
+            print("[Twilio] ✅ Envío exitoso.")
 
     except Exception as e:
-        print(f"[Twilio] ❌ Excepción general al enviar alerta: {e}")
+        print(f"[Twilio] ❌ Excepción: {e}")
         traceback.print_exc()
 
 
@@ -306,7 +366,8 @@ def home() -> Any:
     return jsonify({
         "status": "ok",
         "message": "FinCortex IA con Asesor Financiero 🚀",
-        "version": "3.2",
+        "version": "3.3-stable",
+        "model": MODEL_NAME,
         "features": ["chat", "voice", "financial_analysis", "recommendations"]
     })
 
@@ -339,9 +400,9 @@ def ask() -> Any:
     audio_b64 = synthesize_voice_fast(answer)
     elapsed = time.time() - start_time
 
-    # === ENVÍO AUTOMÁTICO DE ALERTA TWILIO ===
-    send_twilio_alert(answer)
-    # =========================================
+    # === ENVÍO AUTOMÁTICO DE ALERTA TWILIO (comentado por defecto) ===
+    # send_twilio_alert(answer)
+    # =================================================================
 
     print(f"[RESPONSE] ✅ Completado en {elapsed:.2f}s\n{'='*60}\n")
 
@@ -385,9 +446,10 @@ def forecast(serie: str) -> Any:
 # ==============================
 if __name__ == "__main__":
     print("\n" + "="*60)
-    print("🚀 FINCORTEX VOICE - CON ASESOR FINANCIERO v3.2 + ALERTAS TWILIO")
-    print("⚡ Optimizado | 🎤 Sin FFmpeg | 🧠 Respuestas dinámicas | 🔔 Alertas automáticas")
+    print("🚀 FINCORTEX VOICE - CON ASESOR FINANCIERO v3.3")
+    print("⚡ MODELO ESTABLE | 🎤 Audio Full | 🧠 Respuestas IA")
     print("="*60)
+    print(f"   - Modelo Gemini: {MODEL_NAME}")
     print(f"   - Financial Advisor: {'✅ ACTIVO' if FINANCIAL_ENABLED else '❌ DESACTIVADO'}")
     print("="*60 + "\n")
     app.run(debug=False, host="0.0.0.0", port=8000, threaded=True)
